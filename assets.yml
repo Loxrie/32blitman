@@ -1,0 +1,7 @@
+assets.cpp:
+  prefix: asset_
+  ./assets/sprites.png:
+    name: sprites
+    transparent: 0,0,0
+  assets/level*.tmx:
+    name:
