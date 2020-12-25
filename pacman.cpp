@@ -20,7 +20,7 @@ enum entityType {
   GHOST = 0x04,
 };
 
-const bool debug_logging = true;
+const bool debug_logging = false;
 
 Rect pacmanAnims[16] = {
   // Left
@@ -63,7 +63,7 @@ struct Player {
 
   entityType moving_to;
 
-  std::vector<Point> debug_bounds = {Point(0,0), Point(0,0), Point(0,0), Point(0,0)};
+  // std::vector<Point> debug_bounds = {Point(0,0), Point(0,0), Point(0,0), Point(0,0)};
   
   uint8_t sprite;
   bool animation_direction;
@@ -183,12 +183,12 @@ struct Player {
       location = t_location;
     }
 
-    this->debug_bounds = { 
-      Point(bounds_lr.x, bounds_lr.y), 
-      Point(bounds_lr.x + bounds_lr.w, bounds_lr.y), 
-      Point(bounds_lr.x + bounds_lr.w, bounds_lr.y + bounds_lr.h),
-      Point(bounds_lr.x, bounds_lr.y + bounds_lr.h)
-    };
+    // this->debug_bounds = { 
+    //   Point(bounds_lr.x, bounds_lr.y), 
+    //   Point(bounds_lr.x + bounds_lr.w, bounds_lr.y), 
+    //   Point(bounds_lr.x + bounds_lr.w, bounds_lr.y + bounds_lr.h),
+    //   Point(bounds_lr.x, bounds_lr.y + bounds_lr.h)
+    // };
   }
 } player;
 
@@ -224,14 +224,18 @@ void init() {
   // printf("Length of level and vector %d / %lu\n", asset_assets_level2_tmx_length, mazeVector.size());
 
   map.add_layer("background", mazeVector);
+  // Set walls.
   map.layers["background"].add_flags({
     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
     16,17,22,23,24,25,26,27,28,29,30,31,
     32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,
     48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63
   }, entityType::WALL);
-
-  
+  // Set pills.
+  std::vector<uint8_t> pillVector(asset_pills_length);
+  pillVector.assign(&asset_pills[0], &asset_pills[asset_pills_length]);
+  map.add_layer("pills", pillVector);
+  map.layers["pills"].add_flags(240, entityType::PILL);
 }
 
 // Line-interrupt callback for level->draw that applies our camera transformation
@@ -246,10 +250,47 @@ void update_camera() {
   camera *= Mat3::translation(Vec2(-screen_width / 2, -screen_height / 2)); // transform to centre of framebuffer
 }
 
-Vec2 world_to_screen(Vec2 point) {
+Point world_to_screen(Point point) {
+  Vec2 world_vector = Vec2(point.x, point.y);
   Mat3 bob = Mat3(camera);
   bob.inverse();
-  return point * bob;
+  Vec2 screen_vector = world_vector * bob;
+  return Point(screen_vector.x, screen_vector.y);
+}
+
+Point screen_to_world(Point point) {
+  Vec2 screen_vector = Vec2(point.x,point.y);
+  Vec2 world_vector = screen_vector * camera;
+  return Point(world_vector.x,world_vector.y);
+}
+
+Point tile(Point point) {
+  return point/8;
+}
+
+void draw_layer(MapLayer &layer, uint32_t offset) {
+  Point tl = screen_to_world(Point(0, 0));
+  Point br = screen_to_world(Point(screen.bounds.w, screen.bounds.h));
+
+  Point tlt = tile(tl);
+  Point brt = tile(br);
+
+  for (uint8_t y = tlt.y; y <= brt.y; y++) {
+    for (uint8_t x = tlt.x; x <= brt.x; x++) {
+      Point pt = world_to_screen(Point(x * 8 + offset, y * 8 + offset));
+      int32_t ti = layer.map->tile_index(Point(x, y));
+      if (ti != -1) {
+        uint8_t si = layer.tiles[ti];
+        if (si != 0) {
+          screen.sprite(si, pt);
+        }
+      }
+    }
+  }
+}
+
+void draw_layer(MapLayer &layer) {
+  draw_layer(layer, 0);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -264,24 +305,25 @@ void render(uint32_t time) {
   screen.pen = Pen(0, 0, 0);
   screen.clear();
   level->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), level_line_interrupt_callback);
+  
+  draw_layer(map.layers["pills"], 4);
 
   screen.sprite(pacmanAnims[player.sprite], world_to_screen(player.location));
 
-  if (debug_logging) {
-    screen.pen = Pen(255,0,255);
-    screen.pixel(player.location);
-    Point prev_point = Point(-1,-1);
-    for(Point a_point: player.debug_bounds) {
-      if (prev_point.x != -1) {
-        screen.line(prev_point, a_point);
-        prev_point = a_point;
-      } else {
-        prev_point = a_point;
-      }
-    }
-    screen.line(player.debug_bounds[0], player.debug_bounds[player.debug_bounds.size()-1]);
-    // screen.polygon(player.debug_bounds);
-  }
+  // if (debug_logging) {
+  //   screen.pen = Pen(255,0,255);
+  //   screen.pixel(player.location);
+  //   Point prev_point = Point(-1,-1);
+  //   for(Point a_point: player.debug_bounds) {
+  //     if (prev_point.x != -1) {
+  //       screen.line(prev_point, a_point);
+  //       prev_point = a_point;
+  //     } else {
+  //       prev_point = a_point;
+  //     }
+  //   }
+  //   screen.line(player.debug_bounds[0], player.debug_bounds[player.debug_bounds.size()-1]);
+  // }
 
   screen.pen = Pen(0, 0, 0);
 }
