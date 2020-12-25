@@ -56,7 +56,12 @@ struct Player {
   Size size = Size(16, 16);
   Point screen_location;
   Point movement;
+  Vec2 camera;
   uint32_t direction;
+
+  Point desired_movement;
+  uint32_t desired_direction;
+
   entityType moving_to;
 
   std::vector<Point> debug_bounds = {Point(0,0), Point(0,0), Point(0,0), Point(0,0)};
@@ -69,16 +74,16 @@ struct Player {
   uint32_t level;
   uint32_t lives;
 
-  bool dead;
-
   Player() {
     sprite = 0;
-    dead = false;
     lives = 3;
     score = 0;
     screen_location = Point((19*8)+4,21*8);
     movement = Point(0,0);
     direction = 0;
+    desired_movement = movement;
+    desired_direction = direction;
+    camera = Vec2(screen_location.x, screen_location.y);
   }
 
   void anim_player() {
@@ -121,7 +126,11 @@ struct Player {
   }
 
   Rect feet() {
-    return Rect(screen_location.x, screen_location.y, size.w - 1, size.h - 1);
+    return feet(screen_location);
+  }
+
+  Rect feet(Point location) {
+    return Rect(location.x, location.y, size.w - 1, size.h - 1);
   }
 
   std::function<void(Point)> collision_detection = [this](Point tile_pt) -> void {
@@ -131,77 +140,57 @@ struct Player {
   };
 
   void update(uint32_t time) {
-    static uint32_t last_pacman_animation = time;
-    
-    Point new_movement = Point(0,0);
-    uint32_t new_direction = 0;
-    
-    Point restoreScreenLocation = screen_location;
+    Point t_screen_location = screen_location;
     moving_to = entityType::NOTHING;
     Rect bounds_lr;
 
     if (buttons.state > 0) {
       // Possible new direction.
       if(buttons & Button::DPAD_UP) {
-        new_movement = Point(0,-1);
-        new_direction = Button::DPAD_UP;
+        desired_movement = Point(0,-1);
+        desired_direction = Button::DPAD_UP;
       } 
       else if(buttons & Button::DPAD_DOWN) {
-        new_movement = Point(0,1);
-        new_direction = Button::DPAD_DOWN;
+        desired_movement = Point(0,1);
+        desired_direction = Button::DPAD_DOWN;
       }
       else if(buttons & Button::DPAD_LEFT) {
-        new_movement = Point(-1,0);
-        new_direction = Button::DPAD_LEFT;
+        desired_movement = Point(-1,0);
+        desired_direction = Button::DPAD_LEFT;
       }
       else if(buttons & Button::DPAD_RIGHT) {
-        new_movement = Point(1,0);
-        new_direction = Button::DPAD_RIGHT;
+        desired_movement = Point(1,0);
+        desired_direction = Button::DPAD_RIGHT;
       }
-      screen_location += new_movement;
-      bounds_lr = feet();
-      map.tiles_in_rect(bounds_lr, collision_detection);
+    }
 
-      // We hit a wall try existing movement.
-      if (moving_to == entityType::WALL) {
-        // Continue on.
-        moving_to = entityType::NOTHING;
-        new_movement = movement;
-        new_direction = direction;
-        screen_location = restoreScreenLocation + new_movement;
-      }
-    } else {
+    // See if new input direction is valid.
+    t_screen_location += desired_movement;
+    bounds_lr = feet(t_screen_location);
+    map.tiles_in_rect(bounds_lr, collision_detection);
+
+    // Try existing direction.
+    if (moving_to == entityType::WALL) {
       // Continue on.
-      new_movement = movement;
-      new_direction = direction;
-      screen_location += new_movement;
-    }
-      
-    // If moving to is NOTHING check collision.
-    if (moving_to == entityType::NOTHING) {
-      bounds_lr = feet();
+      moving_to = entityType::NOTHING;
+      t_screen_location = screen_location + movement;
+      bounds_lr = feet(t_screen_location);
       map.tiles_in_rect(bounds_lr, collision_detection);
+    } else {
+      movement = desired_movement;
+      direction = desired_direction;
     }
-    
+
+    if (moving_to == entityType::NOTHING) {
+      screen_location = t_screen_location;
+    }
+
     this->debug_bounds = { 
       Point(bounds_lr.x, bounds_lr.y), 
       Point(bounds_lr.x + bounds_lr.w, bounds_lr.y), 
       Point(bounds_lr.x + bounds_lr.w, bounds_lr.y + bounds_lr.h),
       Point(bounds_lr.x, bounds_lr.y + bounds_lr.h)
     };
-
-    if (moving_to == entityType::NOTHING) {
-      // Animate at 60fps.
-      if (time - last_pacman_animation > (1000/60)) {
-        last_pacman_animation = time;
-        movement = new_movement;
-        direction = new_direction;
-        anim_player();
-      }
-    } else {
-      screen_location = restoreScreenLocation;
-      movement = Point(0,0);
-    }
   }
 } player;
 
@@ -253,22 +242,10 @@ std::function<Mat3(uint8_t)> level_line_interrupt_callback = [](uint8_t y) -> Ma
   return camera;
 };
 
-entityType level_get(Point n_location) {
-  // Location is top left of pacman.
-  if(n_location.y < 0 || n_location.x < 0 || n_location.y >= level_height || n_location.x >= level_width) {
-    return entityType::WALL;
-  }
-  entityType entity = entityType::NOTHING;
-  
-  uint8_t tl_wall = map.has_flag(n_location, entityType::WALL);
-  uint8_t tr_wall = map.has_flag(Point(n_location.x, n_location.y + 1), entityType::WALL);
-  uint8_t bl_wall = map.has_flag(Point(n_location.x + 1, n_location.y), entityType::WALL);
-  uint8_t br_wall = map.has_flag(Point(n_location.x + 1, n_location.y + 1), entityType::WALL);
-  if (tl_wall || tr_wall || bl_wall || br_wall) {
-    entity = entityType::WALL;
-  }
-  // printf("Player %d:%d moving into tile %d = %d\n", n_location.x,n_location.y, map.tile_index(n_location), entity);
-  return entity;
+void update_camera(uint32_t time) {
+  camera = Mat3::identity();
+  camera *= Mat3::translation(Vec2(player.screen_location.x, player.screen_location.y)); // offset to middle of world
+  camera *= Mat3::translation(Vec2(-screen_width / 2, -screen_height / 2)); // transform to centre of framebuffer
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -282,12 +259,9 @@ void render(uint32_t time) {
   // clear the screen -- screen is a reference to the frame buffer and can be used to draw all things with the 32blit
   screen.pen = Pen(0, 0, 0);
   screen.clear();
-  level->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), nullptr);
-  // screen.sprite(Point(5,2), Point(32,32));
+  level->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), level_line_interrupt_callback);
 
-  if(!player.dead) {
-    screen.sprite(pacmanAnims[player.sprite], player.screen_location);
-  }
+  screen.sprite(pacmanAnims[player.sprite], player.screen_location);
 
   if (debug_logging) {
     screen.pen = Pen(255,0,255);
@@ -316,5 +290,11 @@ void render(uint32_t time) {
 // amount if milliseconds elapsed since the start of your game
 //
 void update(uint32_t time) {
+  static uint32_t last_animation = time;
   player.update(time);
+  if (time - last_animation > 1000/30) {
+    last_animation = time;
+    player.anim_player();
+  }
+  update_camera(time);
 }
