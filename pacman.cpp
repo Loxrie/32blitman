@@ -54,12 +54,11 @@ TileMap *level;
 
 struct Player {
   Size size = Size(16, 16);
-  Point screen_location;
-  Point movement;
-  Vec2 camera;
+  Vec2 location;
+  Vec2 movement;
   uint32_t direction;
 
-  Point desired_movement;
+  Vec2 desired_movement;
   uint32_t desired_direction;
 
   entityType moving_to;
@@ -78,12 +77,11 @@ struct Player {
     sprite = 0;
     lives = 3;
     score = 0;
-    screen_location = Point((19*8)+4,21*8);
-    movement = Point(0,0);
+    location = Vec2((19*8)+4,21*8);
+    movement = Vec2(0,0);
     direction = 0;
     desired_movement = movement;
     desired_direction = direction;
-    camera = Vec2(screen_location.x, screen_location.y);
   }
 
   void anim_player() {
@@ -126,10 +124,10 @@ struct Player {
   }
 
   Rect feet() {
-    return feet(screen_location);
+    return feet(location);
   }
 
-  Rect feet(Point location) {
+  Rect feet(Vec2 location) {
     return Rect(location.x, location.y, size.w - 1, size.h - 1);
   }
 
@@ -140,41 +138,41 @@ struct Player {
   };
 
   void update(uint32_t time) {
-    Point t_screen_location = screen_location;
+    Vec2 t_location = Vec2(location.x,location.y);
     moving_to = entityType::NOTHING;
     Rect bounds_lr;
 
     if (buttons.state > 0) {
       // Possible new direction.
       if(buttons & Button::DPAD_UP) {
-        desired_movement = Point(0,-1);
+        desired_movement = Vec2(0,-1);
         desired_direction = Button::DPAD_UP;
       } 
       else if(buttons & Button::DPAD_DOWN) {
-        desired_movement = Point(0,1);
+        desired_movement = Vec2(0,1);
         desired_direction = Button::DPAD_DOWN;
       }
       else if(buttons & Button::DPAD_LEFT) {
-        desired_movement = Point(-1,0);
+        desired_movement = Vec2(-1,0);
         desired_direction = Button::DPAD_LEFT;
       }
       else if(buttons & Button::DPAD_RIGHT) {
-        desired_movement = Point(1,0);
+        desired_movement = Vec2(1,0);
         desired_direction = Button::DPAD_RIGHT;
       }
     }
 
     // See if new input direction is valid.
-    t_screen_location += desired_movement;
-    bounds_lr = feet(t_screen_location);
+    t_location += desired_movement;
+    bounds_lr = feet(t_location);
     map.tiles_in_rect(bounds_lr, collision_detection);
 
     // Try existing direction.
     if (moving_to == entityType::WALL) {
       // Continue on.
       moving_to = entityType::NOTHING;
-      t_screen_location = screen_location + movement;
-      bounds_lr = feet(t_screen_location);
+      t_location = location + movement;
+      bounds_lr = feet(t_location);
       map.tiles_in_rect(bounds_lr, collision_detection);
     } else {
       movement = desired_movement;
@@ -182,7 +180,7 @@ struct Player {
     }
 
     if (moving_to == entityType::NOTHING) {
-      screen_location = t_screen_location;
+      location = t_location;
     }
 
     this->debug_bounds = { 
@@ -242,10 +240,16 @@ std::function<Mat3(uint8_t)> level_line_interrupt_callback = [](uint8_t y) -> Ma
   return camera;
 };
 
-void update_camera(uint32_t time) {
+void update_camera() {
   camera = Mat3::identity();
-  camera *= Mat3::translation(Vec2(player.screen_location.x, player.screen_location.y)); // offset to middle of world
+  camera *= Mat3::translation(Vec2(player.location.x, player.location.y)); // offset to middle of world
   camera *= Mat3::translation(Vec2(-screen_width / 2, -screen_height / 2)); // transform to centre of framebuffer
+}
+
+Vec2 world_to_screen(Vec2 point) {
+  Mat3 bob = Mat3(camera);
+  bob.inverse();
+  return point * bob;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -261,11 +265,11 @@ void render(uint32_t time) {
   screen.clear();
   level->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), level_line_interrupt_callback);
 
-  screen.sprite(pacmanAnims[player.sprite], player.screen_location);
+  screen.sprite(pacmanAnims[player.sprite], world_to_screen(player.location));
 
   if (debug_logging) {
     screen.pen = Pen(255,0,255);
-    screen.pixel(player.screen_location);
+    screen.pixel(player.location);
     Point prev_point = Point(-1,-1);
     for(Point a_point: player.debug_bounds) {
       if (prev_point.x != -1) {
@@ -296,5 +300,5 @@ void update(uint32_t time) {
     last_animation = time;
     player.anim_player();
   }
-  update_camera(time);
+  update_camera();
 }
