@@ -77,7 +77,7 @@ struct Player {
     sprite = 0;
     lives = 3;
     score = 0;
-    location = Vec2((19*8)+4,21*8);
+    location = Vec2((19*8)+4,27*8);
     movement = Vec2(0,0);
     direction = 0;
     desired_movement = movement;
@@ -236,6 +236,7 @@ void init() {
   pillVector.assign(&asset_pills[0], &asset_pills[asset_pills_length]);
   map.add_layer("pills", pillVector);
   map.layers["pills"].add_flags(240, entityType::PILL);
+  map.layers["pills"].add_flags(241, entityType::POWER);
 }
 
 // Line-interrupt callback for level->draw that applies our camera transformation
@@ -279,7 +280,7 @@ void draw_layer(MapLayer &layer, uint32_t offset) {
   Point tlt = tile(tl);
   Point brt = tile(br);
 
-  printf("TL Tile %d:%d\tBR Tile %d:%d\n",tlt.x,tlt.y,brt.x,brt.y);
+  // printf("TL Tile %d:%d\tBR Tile %d:%d\n",tlt.x,tlt.y,brt.x,brt.y);
   for (uint8_t y = tlt.y; y <= brt.y; y++) {
     for (uint8_t x = tlt.x; x <= brt.x; x++) {
       Point pt = world_to_screen(Point(x * 8 + offset, y * 8 + offset));
