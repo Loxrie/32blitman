@@ -250,22 +250,26 @@ void update_camera() {
   camera *= Mat3::translation(Vec2(-screen_width / 2, -screen_height / 2)); // transform to centre of framebuffer
 }
 
+int32_t clamp(int32_t v, int32_t min, int32_t max) {
+  return v > min ? (v < max ? v : max) : min;
+}
+
 Point world_to_screen(Point point) {
   Vec2 world_vector = Vec2(point.x, point.y);
   Mat3 bob = Mat3(camera);
   bob.inverse();
   Vec2 screen_vector = world_vector * bob;
-  return Point(screen_vector.x, screen_vector.y);
+  return Point(screen_vector);
 }
 
 Point screen_to_world(Point point) {
   Vec2 screen_vector = Vec2(point.x,point.y);
   Vec2 world_vector = screen_vector * camera;
-  return Point(world_vector.x,world_vector.y);
+  return Point(world_vector);
 }
 
 Point tile(Point point) {
-  return point/8;
+  return Point(clamp(point.x/8,0,level_width),clamp(point.y/8,0,level_height));
 }
 
 void draw_layer(MapLayer &layer, uint32_t offset) {
@@ -275,6 +279,7 @@ void draw_layer(MapLayer &layer, uint32_t offset) {
   Point tlt = tile(tl);
   Point brt = tile(br);
 
+  printf("TL Tile %d:%d\tBR Tile %d:%d\n",tlt.x,tlt.y,brt.x,brt.y);
   for (uint8_t y = tlt.y; y <= brt.y; y++) {
     for (uint8_t x = tlt.x; x <= brt.x; x++) {
       Point pt = world_to_screen(Point(x * 8 + offset, y * 8 + offset));
