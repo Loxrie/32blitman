@@ -6,6 +6,6 @@ set(32BLIT_PATH "../32blit-beta" CACHE PATH "Path to 32blit.cmake")
 
 include (${32BLIT_PATH}/32blit.cmake)
 
-blit_executable (pacman pacman.cpp pacman.hpp)
+blit_executable (pacman main.cpp main.hpp pacman.cpp pacman.hpp ghost.cpp ghost.hpp)
 blit_assets_yaml(pacman assets.yml)
 blit_metadata(pacman metadata.yml)
