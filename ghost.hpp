@@ -13,12 +13,16 @@ struct Ghost {
 
   blit::Vec2 desired_movement;
   uint32_t desired_direction;
+  bool decision_made;
+  entityType moving_to;
 
   uint8_t sprite;
 
   Ghost();
-  uint32_t target_to_dpad();
+  uint32_t target_to_dpad(uint32_t where_did_we_come_from);
   void update(uint32_t time);
+
+  std::function<void(blit::Point)> collision_detection;
 };
 
 #endif

@@ -20,8 +20,8 @@ Pacman::Pacman() {
   score = 0;
 
   collision_detection = [this](Point tile_pt) -> void {
-    if(this->moving_to == entityType::NOTHING && map.has_flag(tile_pt, entityType::WALL)) {
-        this->moving_to = entityType::WALL;
+    if(map.has_flag(tile_pt, entityType::WALL)) {
+      this->moving_to = entityType::WALL;
     }
   };
 }
