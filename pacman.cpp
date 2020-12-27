@@ -75,6 +75,14 @@ void Pacman::update(uint32_t time) {
   Vec2 t_location = Vec2(location.x,location.y);
   moving_to = entityType::NOTHING;
   Rect bounds_lr;
+  
+  Point tile_pt = tile(location);
+  uint32_t flags = map.get_flags(tile_pt);
+  printf("Pacman::update flags %d at %d:%d\n.", flags, tile_pt.x, tile_pt.y);
+  if (flags & entityType::PILL) {
+    printf("Pacman::update ated a pill.\n");
+    map.layers["pills"].tiles[tile_pt.y * level_width + tile_pt.x] = 0;
+  }
 
   if (buttons.state > 0) {
     // Possible new direction.

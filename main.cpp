@@ -105,8 +105,8 @@ void init() {
   std::vector<uint8_t> pillVector(asset_pills_length);
   pillVector.assign(&asset_pills[0], &asset_pills[asset_pills_length]);
   map.add_layer("pills", pillVector);
-  map.layers["pills"].add_flags(240, entityType::PILL);
-  map.layers["pills"].add_flags(241, entityType::POWER);
+  map.layers["pills"].add_flags(238, entityType::PILL);
+  map.layers["pills"].add_flags(239, entityType::POWER);
 
   // Setup junction logic.
   mapOfJunctions[5 * level_width + 7] = { Vec2(1,0), Vec2(0,1) };
