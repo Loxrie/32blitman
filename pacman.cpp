@@ -60,7 +60,7 @@ void Pacman::anim_player() {
       break;
   }
   if (sprite > 15) {
-    printf("Warning sprite %d out of range.", sprite);
+    printf("Warning sprite %ld out of range.", sprite);
     sprite = 0;
   }
 }

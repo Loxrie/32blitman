@@ -88,7 +88,7 @@ void init() {
   }
   std::vector<uint8_t> mazeVector(asset_assets_level2_tmx_length);
   mazeVector.assign(&asset_assets_level2_tmx[0], &asset_assets_level2_tmx[asset_assets_level2_tmx_length]);
-  // printf("Length of level and vector %d / %lu\n", asset_assets_level2_tmx_length, mazeVector.size());
+  // printf("Length of level and vector %ld / %lu\n", asset_assets_level2_tmx_length, mazeVector.size());
 
   map.add_layer("background", mazeVector);
   // Set walls.
@@ -217,7 +217,7 @@ void print_flags(uint8_t flags) {
   bool junc = flags & entityType::JUNCTION;
   bool warp = flags & entityType::WARP;
   printf("Flags : W P PP J W\n");
-  printf("Result: %d %d %d  %d %d\n", wall, pill, power, junc, warp);
+  printf("Result: %ld %ld %ld  %ld %ld\n", wall, pill, power, junc, warp);
 }
 
 /** 
@@ -261,7 +261,7 @@ void draw_layer(MapLayer &layer, int32_t offset) {
   Point tlt = tile(tl);
   Point brt = tile(br);
 
-  // printf("TL Tile %d:%d\tBR Tile %d:%d\n",tlt.x,tlt.y,brt.x,brt.y);
+  // printf("TL Tile %ld:%ld\tBR Tile %ld:%ld\n",tlt.x,tlt.y,brt.x,brt.y);
   for (uint8_t y = tlt.y; y <= brt.y; y++) {
     for (uint8_t x = tlt.x; x <= brt.x; x++) {
       Point pt = world_to_screen(Point(x * 8 + offset, y * 8 + offset));
