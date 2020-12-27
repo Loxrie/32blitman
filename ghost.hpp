@@ -6,7 +6,7 @@
 
 struct Ghost {
   blit::Size size;
-  blit::Vec2 location;
+  blit::Point location;
   blit::Vec2 movement;
   blit::Vec2 target;
   uint32_t direction;

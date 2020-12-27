@@ -8,7 +8,7 @@
 using namespace blit;
 
 Pacman::Pacman() {
-  size = Size(16,16);
+  size = Size(15,15);
   location = Vec2((19*8)+4,27*8);
   movement = Vec2(0,0);
   direction = 0;
@@ -72,15 +72,12 @@ void Pacman::anim_player() {
 // };
 
 void Pacman::update(uint32_t time) {
-  Vec2 t_location = Vec2(location.x,location.y);
   moving_to = entityType::NOTHING;
   Rect bounds_lr;
   
   Point tile_pt = tile(location);
   uint32_t flags = map.get_flags(tile_pt);
-  printf("Pacman::update flags %d at %d:%d\n.", flags, tile_pt.x, tile_pt.y);
   if (flags & entityType::PILL) {
-    printf("Pacman::update ated a pill.\n");
     map.layers["pills"].tiles[tile_pt.y * level_width + tile_pt.x] = 0;
   }
 
@@ -105,16 +102,14 @@ void Pacman::update(uint32_t time) {
   }
 
   // See if new input direction is valid.
-  t_location += desired_movement;
-  bounds_lr = feet(t_location, size);
+  bounds_lr = footprint(location + desired_movement, size);
   map.tiles_in_rect(bounds_lr, collision_detection);
 
   // Try existing direction.
   if (moving_to == entityType::WALL) {
     // Continue on.
     moving_to = entityType::NOTHING;
-    t_location = location + movement;
-    bounds_lr = feet(t_location, size);
+    bounds_lr = footprint(location + movement, size);
     map.tiles_in_rect(bounds_lr, collision_detection);
   } else {
     movement = desired_movement;
@@ -122,7 +117,7 @@ void Pacman::update(uint32_t time) {
   }
 
   if (moving_to == entityType::NOTHING) {
-    location = t_location;
+    location += movement;
   }
 
   // this->debug_bounds = { 

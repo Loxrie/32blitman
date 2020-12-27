@@ -4,10 +4,10 @@
 using namespace blit;
 
 Ghost::Ghost() {
-  size = Size(16, 16);
-  location = Vec2((19*8)+4,15*8);
+  size = Size(14, 14);
+  location = Point((19*8)+4,15*8);
   target = Vec2(player.location);
-  decision_made = true;
+  decision_made = false;
   direction = 0;
   movement = Vec2(-1,0);
   desired_movement = movement;
@@ -15,7 +15,9 @@ Ghost::Ghost() {
   sprite = 0;
 
   collision_detection = [this](Point tile_pt) -> void {
+    printf("Ghost::ghost collision_detection checking %d:%d.\n", tile_pt.x, tile_pt.y);
     if(map.has_flag(tile_pt, entityType::WALL)) {
+        printf("Ghost::ghost collision_detection tile number %d has flags %d.\n", map.layers["background"].tile_at(tile_pt), map.get_flags(tile_pt));
         this->moving_to = entityType::WALL;
     }
   };
@@ -52,9 +54,10 @@ Vec2 Ghost::vector_to_target() {
       printf("Ghost::vector_to_target Skipping %.0f:%0.f.\n", vector.x, vector.y);
       continue;
     }
-    
+
     Point source_tile = Point(decision_tile.x + vector.x, decision_tile.y + vector.y);
     float distance = fabs(Vec2(target_tile.x - source_tile.x, target_tile.y - source_tile.y).length());
+    printf("Ghost::vector_to_target checking point %d:%d distance %3.3f min is %3.3f.\n", source_tile.x, source_tile.y, distance, min_distance);    
     if (distance < min_distance) {
       min_distance = distance;
       min_vector = vector;
@@ -65,48 +68,58 @@ Vec2 Ghost::vector_to_target() {
 }
   
 void Ghost::update(uint32_t time) {
+  // Only update every 8 pixels.
+  if (location.x % 8 != 0 || location.y % 8 != 0) {
+    printf("Inbetween tiles, floating.\n");
+    location += movement;
+    return;
+  }
+
   moving_to = entityType::NOTHING;
   Rect bounds_lr;
   target = player.location;
   float vector_divisor = 1.0f;
 
-  uint32_t flags = map.get_flags(tile(location));
-
+  Point tile_pt = tile(location);
+  uint32_t flags = map.get_flags(tile_pt);
+  print_flags(flags);
   if (flags & entityType::WARP) {
     vector_divisor = 2.0f;
   }
 
-
   if (!decision_made && flags & entityType::JUNCTION) {
     decision_made = true;
     desired_movement = vector_to_target();
-    printf("Decision made to move %.0f:%0.f\n", desired_movement.x, desired_movement.y);
+    printf("Ghost::update decision move to %.0f:%0.f\n", desired_movement.x, desired_movement.y);
   }
 
   // See if new input direction is valid.
-  bounds_lr = feet(location + desired_movement, size);
-  map.tiles_in_rect(bounds_lr, collision_detection);
-
-  if (moving_to == entityType::NOTHING) {
-    movement = desired_movement;
-    printf("Now moving to %0.f:%0.f\n", movement.x, movement.y);
-    decision_made = false;
-    location += desired_movement/vector_divisor;
-    return;
-  } 
-
+  if (decision_made) {
+    bounds_lr = footprint(location + (desired_movement * 8), size);
+    map.tiles_in_rect(bounds_lr, collision_detection);
+    if (moving_to == entityType::NOTHING) {
+      movement = desired_movement;
+      printf("Ghost::update desired move to %0.f:%0.f\n", movement.x, movement.y);
+      decision_made = false;
+      location += desired_movement/vector_divisor;
+      return;
+    } 
+  }
+  
   // Use pre-existing movement.
   moving_to = entityType::NOTHING;
-  bounds_lr = feet(location + movement, size);
+  printf("Ghost::update Calculating bounds with %d:%d\n", location.x, location.y);
+  bounds_lr = footprint(location + (movement * 8), size);
   map.tiles_in_rect(bounds_lr, collision_detection);
-
+  printf("Ghost::update tiles in rect %d:%d %d:%d found %d.\n", bounds_lr.x/8, bounds_lr.y/8, bounds_lr.w, bounds_lr.h, moving_to);
   if (moving_to == entityType::NOTHING) {
+    printf("Ghost::update move to %0.f:%0.f\n", movement.x, movement.y);
     location += movement/vector_divisor;
     return;
   } 
   
   // Still can't move, try turning a corner.
-  if (moving_to == entityType::WALL && flags == 0) {
+  if (moving_to == entityType::WALL && !(flags & entityType::JUNCTION)) {
     Vec2 inverted_vector = Vec2(-movement.x, -movement.y);
     printf("Movement is %.0f:%0.f, so we don't want %.0f:%.0f as possible direction.\n", movement.x, movement.y, inverted_vector.x, inverted_vector.y);
     Point stuck_at = tile(location);
@@ -124,10 +137,11 @@ void Ghost::update(uint32_t time) {
       }
       printf("Checking escape route from %d:%d with vector %.0f:%.0f.\n", stuck_at.x, stuck_at.y, vector.x, vector.y);
       moving_to = entityType::NOTHING;
-      map.tiles_in_rect(feet(location + vector, size), collision_detection);
+      map.tiles_in_rect(footprint(location + (vector * 8), size), collision_detection);
       if (moving_to == entityType::NOTHING) {
         // This slows down ghost on corner?
         desired_movement = vector;
+        decision_made = true;
         break;
       }
     }
