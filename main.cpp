@@ -60,6 +60,8 @@ float deg2rad(float a) {
     return a * (pi / 180.0f);
 }
 
+bool game_start;
+
 ///////////////////////////////////////////////////////////////////////////
 //
 // init()
@@ -67,6 +69,7 @@ float deg2rad(float a) {
 // setup your game here
 //
 void init() {
+  game_start = false;
   set_screen_mode(ScreenMode::hires);
 
   // Load sprite sheet.
@@ -297,11 +300,19 @@ void render(uint32_t time) {
 //
 void update(uint32_t time) {
   static uint32_t last_animation = time;
-  player.update(time);
-  ghost.update(time);
-  if (time - last_animation > 1000/30) {
-    last_animation = time;
-    player.anim_player();
+  if (game_start) {
+    if (buttons & Button::A) {
+      game_start = false;
+    } else {
+      player.update(time);
+      ghost.update(time);
+      if (time - last_animation > 1000/30) {
+        last_animation = time;
+        player.anim_player();
+      }
+    }
+  } else if (buttons & Button::A) {
+    game_start = true;
   }
   update_camera();
 }
