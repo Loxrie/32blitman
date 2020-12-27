@@ -16,6 +16,8 @@ Map map(blit::Rect(0, 0, level_height, level_height));
 Pacman player;
 Ghost ghost;
 
+std::map<uint32_t, std::vector<Vec2>> mapOfJunctions;
+
 Rect pacmanAnims[16] = {
   // Left
   Rect(12,14,2,2),
@@ -91,17 +93,95 @@ void init() {
     1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
     16,17,22,23,24,25,26,27,28,29,30,31,
     32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,
-    48,49,50,51,52,53,54,55,56,57,58,59,60
+    48,49,50,51,52,53,54,55,56,57,58,59,60,61
   }, entityType::WALL);
-  map.layers["background"].add_flags({61, 62}, entityType::JUNCTION);
-  map.layers["background"].add_flags(62, entityType::NU_JUNCTION);
-  map.layers["background"].add_flags({0,61,62}, entityType::NOTHING);
+  map.layers["background"].add_flags(62, entityType::JUNCTION);
+  map.layers["background"].add_flags(63, entityType::WARP);
+  map.layers["background"].add_flags({0,62,63}, entityType::NOTHING);
   // Set pills.
   std::vector<uint8_t> pillVector(asset_pills_length);
   pillVector.assign(&asset_pills[0], &asset_pills[asset_pills_length]);
   map.add_layer("pills", pillVector);
   map.layers["pills"].add_flags(240, entityType::PILL);
   map.layers["pills"].add_flags(241, entityType::POWER);
+
+  // Setup junction logic.
+  mapOfJunctions[5 * level_width + 7] = { Vec2(1,0), Vec2(0,1) };
+  mapOfJunctions[5 * level_width + 12] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1) };
+  mapOfJunctions[5 * level_width + 18] = { Vec2(-1,0), Vec2(0,1) };
+  mapOfJunctions[5 * level_width + 21] = { Vec2(1,0), Vec2(0,1) };
+  mapOfJunctions[5 * level_width + 27] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1) };
+  mapOfJunctions[5 * level_width + 32] = { Vec2(-1,0), Vec2(0,1) };
+
+  mapOfJunctions[9 * level_width + 7] = { Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[9 * level_width + 12] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[9 * level_width + 15] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1) };
+  mapOfJunctions[9 * level_width + 18] = { Vec2(-1,0), Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[9 * level_width + 21] = { Vec2(-1,0), Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[9 * level_width + 24] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1) };
+  mapOfJunctions[9 * level_width + 27] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[9 * level_width + 32] = { Vec2(-1,0), Vec2(0,1), Vec2(0,-1) };
+
+  mapOfJunctions[12 * level_width + 7] = { Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[12 * level_width + 12] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[12 * level_width + 15] = { Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[12 * level_width + 18] = { Vec2(-1,0), Vec2(0,1) };
+  mapOfJunctions[12 * level_width + 21] = { Vec2(1,0), Vec2(0,1) };
+  mapOfJunctions[12 * level_width + 24] = { Vec2(-1,0), Vec2(0,-1) };
+  mapOfJunctions[12 * level_width + 27] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[12 * level_width + 32] = { Vec2(-1,0), Vec2(0,-1) };
+
+  mapOfJunctions[15 * level_width + 15] = { Vec2(1,0), Vec2(0,1) };
+  // No up for these two rows for now.
+  mapOfJunctions[15 * level_width + 18] = { Vec2(-1,0), Vec2(1,0) };
+  mapOfJunctions[15 * level_width + 21] = { Vec2(-1,0), Vec2(1,0) };
+  // Back to normal.
+  mapOfJunctions[15 * level_width + 24] = { Vec2(-1,0), Vec2(0,1) };
+
+  mapOfJunctions[18 * level_width + 12] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[18 * level_width + 15] = { Vec2(-1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[18 * level_width + 24] = { Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[18 * level_width + 27] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+
+  mapOfJunctions[21 * level_width + 15] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[21 * level_width + 24] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+
+  mapOfJunctions[24 * level_width + 7] = { Vec2(1,0), Vec2(0,1) };
+  mapOfJunctions[24 * level_width + 12] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[24 * level_width + 15] = { Vec2(-1,0), Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[24 * level_width + 18] = { Vec2(-1,0), Vec2(0,1) };
+  mapOfJunctions[24 * level_width + 21] = { Vec2(1,0), Vec2(0,1) };
+  mapOfJunctions[24 * level_width + 24] = { Vec2(-1,0), Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[24 * level_width + 27] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[24 * level_width + 32] = { Vec2(-1,0), Vec2(0,1) };
+
+  // more specials decisions here, not skipped for now. Pacman home row.
+  mapOfJunctions[27 * level_width + 7] = { Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[27 * level_width + 9] = { Vec2(-1,0), Vec2(0,1) };
+  mapOfJunctions[27 * level_width + 12] = { Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[27 * level_width + 15] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1) };
+  mapOfJunctions[27 * level_width + 18] = { Vec2(-1,0), Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[27 * level_width + 21] = { Vec2(-1,0), Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[27 * level_width + 24] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1) };
+  mapOfJunctions[27 * level_width + 27] = { Vec2(-1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[27 * level_width + 30] = { Vec2(1,0), Vec2(0,1) };
+  mapOfJunctions[27 * level_width + 32] = { Vec2(-1,0), Vec2(0,-1) };
+
+  mapOfJunctions[30 * level_width + 7] = { Vec2(1,0), Vec2(0,1) };
+  mapOfJunctions[30 * level_width + 9] = { Vec2(-1,0), Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[30 * level_width + 12] = { Vec2(-1,0), Vec2(0,-1) };
+  mapOfJunctions[30 * level_width + 15] = { Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[30 * level_width + 18] = { Vec2(-1,0), Vec2(0,1) };
+  mapOfJunctions[30 * level_width + 21] = { Vec2(1,0), Vec2(0,1) };
+  mapOfJunctions[30 * level_width + 24] = { Vec2(-1,0), Vec2(0,-1) };
+  mapOfJunctions[30 * level_width + 27] = { Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[30 * level_width + 30] = { Vec2(-1,0), Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[30 * level_width + 32] = { Vec2(-1,0), Vec2(0,1) };
+
+  mapOfJunctions[33 * level_width + 7] = { Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[33 * level_width + 18] = { Vec2(-1,0), Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[33 * level_width + 21] = { Vec2(-1,0), Vec2(1,0), Vec2(0,-1) };
+  mapOfJunctions[33 * level_width + 32] = { Vec2(-1,0), Vec2(0,-1) };
 }
 
 // Line-interrupt callback for level->draw that applies our camera transformation
