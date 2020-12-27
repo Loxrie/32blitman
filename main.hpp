@@ -14,11 +14,12 @@ extern std::map<uint32_t, std::vector<blit::Vec2>> mapOfJunctions;
 
 extern blit::Map map;
 
-blit::Rect feet(blit::Vec2 location, blit::Size size);
+blit::Rect footprint(blit::Point pos, blit::Size size);
 blit::Point world_to_screen(blit::Point point);
 blit::Point screen_to_world(blit::Point point);
 blit::Point tile(blit::Point point);
 void draw_layer(blit::MapLayer &layer);
 void draw_layer(blit::MapLayer &layer, int32_t offset);
+void print_flags(uint8_t flags);
 
 #endif

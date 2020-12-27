@@ -126,12 +126,12 @@ void init() {
   mapOfJunctions[9 * level_width + 32] = { Vec2(-1,0), Vec2(0,1), Vec2(0,-1) };
 
   mapOfJunctions[12 * level_width + 7] = { Vec2(1,0), Vec2(0,-1) };
-  mapOfJunctions[12 * level_width + 12] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[12 * level_width + 12] = { Vec2(-1,0), Vec2(0,1), Vec2(0,-1) };
   mapOfJunctions[12 * level_width + 15] = { Vec2(1,0), Vec2(0,-1) };
   mapOfJunctions[12 * level_width + 18] = { Vec2(-1,0), Vec2(0,1) };
   mapOfJunctions[12 * level_width + 21] = { Vec2(1,0), Vec2(0,1) };
   mapOfJunctions[12 * level_width + 24] = { Vec2(-1,0), Vec2(0,-1) };
-  mapOfJunctions[12 * level_width + 27] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[12 * level_width + 27] = { Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
   mapOfJunctions[12 * level_width + 32] = { Vec2(-1,0), Vec2(0,-1) };
 
   mapOfJunctions[15 * level_width + 15] = { Vec2(1,0), Vec2(0,1) };
@@ -146,8 +146,8 @@ void init() {
   mapOfJunctions[18 * level_width + 24] = { Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
   mapOfJunctions[18 * level_width + 27] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
 
-  mapOfJunctions[21 * level_width + 15] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
-  mapOfJunctions[21 * level_width + 24] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[21 * level_width + 15] = { Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
+  mapOfJunctions[21 * level_width + 24] = { Vec2(-1,0), Vec2(0,1), Vec2(0,-1) };
 
   mapOfJunctions[24 * level_width + 7] = { Vec2(1,0), Vec2(0,1) };
   mapOfJunctions[24 * level_width + 12] = { Vec2(-1,0), Vec2(1,0), Vec2(0,1), Vec2(0,-1) };
@@ -203,8 +203,33 @@ int32_t clamp(int32_t v, int32_t min, int32_t max) {
   return v > min ? (v < max ? v : max) : min;
 }
 
-Rect feet(Vec2 location, Size size) {
-  return Rect(location.x, location.y, size.w - 1, size.h - 1);
+  // NOTHING = 0,
+  // WALL = 1,
+  // PILL = 2,
+  // POWER = 4,
+  // JUNCTION = 16, // 62 Normal junction. For Ghosts.
+  // WARP = 32
+
+void print_flags(uint8_t flags) {
+  bool wall = flags & entityType::WALL;
+  bool pill = flags & entityType::PILL;
+  bool power = flags & entityType::POWER;
+  bool junc = flags & entityType::JUNCTION;
+  bool warp = flags & entityType::WARP;
+  printf("Flags : W P PP J W\n");
+  printf("Result: %d %d %d  %d %d\n", wall, pill, power, junc, warp);
+}
+
+/** 
+ * Was called feet 
+ * Don't understand why we neet to futz with width height.
+ * If my sprite is 156x 120y 16:16 why does tiles_in_rect
+ * check 3 deep.  I can understand it checking 3 wide as 156+16 covers three tiles.
+ * But 120+16 does not! FFS FFS Swear rant.
+ **/
+Rect footprint(Point pos, Size size) {
+  // return Rect(pos.x, pos.y, size.w, size.h / 2);
+  return Rect(pos,size);
 }
 
 Point world_to_screen(Point point) {
