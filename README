@@ -1,0 +1,17 @@
+32blit version of Pacman
+
+More a learning exercise than anything.  Will hopefully become a playable game mimicking most of the ghost behaviour.
+
+Thanks to:
+
+https://32blit.com aka Pimoroni
+
+And these three analyses of Pacman:
+
+https://gameinternals.com/understanding-pac-man-ghost-behavior
+https://www.gamasutra.com/view/feature/132330/the_pacman_dossier.php
+http://donhodges.com/pacman_pinky_explanation.htm
+
+If you compile button "A" (z on my keyboard) starts and freezes the game as it stands now.
+It will spam stdout with debug, depending on what I'm looking into.
+It's not efficient.
