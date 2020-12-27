@@ -14,9 +14,9 @@ enum entityType {
   WALL = 1,
   PILL = 2,
   POWER = 4,
-  GHOST = 8,
   JUNCTION = 16, // 62 Normal junction. For Ghosts.
-  NU_JUNCTION = 32 // 63 No UP junction. For Ghosts.
+  WARP = 32
 };
+
 
 #endif
