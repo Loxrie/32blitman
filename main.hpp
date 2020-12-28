@@ -10,8 +10,6 @@
 extern Pacman player;
 extern Ghost ghost;
 
-extern std::map<uint32_t, std::vector<blit::Vec2>> mapOfJunctions;
-
 extern blit::Map map;
 
 blit::Rect footprint(blit::Point pos, blit::Size size);
