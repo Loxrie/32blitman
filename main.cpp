@@ -1,6 +1,7 @@
 #include "main.hpp"
 #include "assets.hpp"
 #include "pacman.hpp"
+#include "ghosts.hpp"
 #include "ghost.hpp"
 
 using namespace blit;
@@ -13,31 +14,20 @@ TileMap *level;
 
 Map map(blit::Rect(0, 0, level_height, level_height));
 
+SpriteSheet *sprites;
 Pacman player;
-Ghost ghost;
+Blinky blinky;
+Pinky pinky;
+Inky inky;
+Clyde clyde;
 
-Rect pacmanAnims[16] = {
-  // Left
-  Rect(12,14,2,2),
-  Rect(4,12,2,2),
-  Rect(2,12,2,2),
-  Rect(0,12,2,2),
-  // Right
-  Rect(12,14,2,2),
-  Rect(10,12,2,2),
-  Rect(8,12,2,2),
-  Rect(6,12,2,2),
-  // Up
-  Rect(12,14,2,2),
-  Rect(4,14,2,2),
-  Rect(2,14,2,2),
-  Rect(0,14,2,2),
-  // Down
-  Rect(12,14,2,2),
-  Rect(10,14,2,2),
-  Rect(8,14,2,2),
-  Rect(6,14,2,2),
-};
+std::vector<Ghost *> ghosts = {&blinky};
+
+void power_timer_callback(Timer &timer) {
+  player.power = 0;
+}
+
+Timer power_timer;
 
 bool operator==(Point a, Point b) {
   return (a.x == b.x && a.y == b.y);
@@ -60,7 +50,8 @@ void init() {
   set_screen_mode(ScreenMode::hires);
 
   // Load sprite sheet.
-  screen.sprites = SpriteSheet::load(asset_sprites);
+  screen.sprites = SpriteSheet::load(asset_level);
+  sprites = SpriteSheet::load(asset_sprites);
 
   // Malloc memory for level.
   level_data = (uint8_t *)malloc(level_width * level_height);
@@ -94,6 +85,7 @@ void init() {
   map.add_layer("pills", pillVector);
   map.layers["pills"].add_flags(238, entityType::PILL);
   map.layers["pills"].add_flags(239, entityType::POWER);
+
 }
 
 // Line-interrupt callback for level->draw that applies our camera transformation
@@ -174,7 +166,7 @@ void draw_layer(MapLayer &layer, int32_t offset) {
 // This function is called to perform rendering of the game. time is the 
 // amount if milliseconds elapsed since the start of your game
 //
-void render(uint32_t time) {
+void render(uint32_t t) {
   // clear the screen -- screen is a reference to the frame buffer and can be used to draw all things with the 32blit
   screen.pen = Pen(0, 0, 0);
   screen.clear();
@@ -182,9 +174,12 @@ void render(uint32_t time) {
   
   draw_layer(map.layers["pills"], 4);
 
-  screen.sprite(pacmanAnims[player.sprite], world_to_screen(player.location));
+  player.render();
 
-  ghost.render();
+  for (auto ghost : ghosts) {
+    ghost->render();
+  }
+  
 
   // screen.pen = Pen(255,0,255);
   // screen.line(world_to_screen(ghost.location), world_to_screen(ghost.target));
@@ -214,21 +209,35 @@ void render(uint32_t time) {
 // This is called to update your game state. time is the 
 // amount if milliseconds elapsed since the start of your game
 //
-void update(uint32_t time) {
-  static uint32_t last_animation = time;
+void update(uint32_t t) {
+  static uint32_t last_animation = t;
   if (game_start) {
+    srand(time(NULL));
     if (buttons & Button::A) {
       game_start = false;
     } else {
-      player.update(time);
-      ghost.update(time);
-      if (time - last_animation > 1000/30) {
-        last_animation = time;
-        player.anim_player();
+      player.update(t);
+
+      Point pacman_pt = tile(player.location);
+      for (auto ghost : ghosts) {
+        ghost->update(t);
+        Point ghost_pt = tile(ghost->location);
+        if (player.is_pilled_up() && pacman_pt == ghost_pt) {
+          ghost->set_state(ghostState::EATEN);
+        }
+      }
+      
+      if (t - last_animation > 1000/30) {
+        last_animation = t;
+        player.animate();
+        for (auto ghost : ghosts) {
+          ghost->animate();
+        }
       }
     }
   } else if (buttons & Button::A) {
     game_start = true;
   }
+
   update_camera();
 }

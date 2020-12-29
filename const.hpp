@@ -96,10 +96,10 @@ enum entityType {
 enum ghostState {
   CHASE = 1,
   SCATTER = 2,
-  FRIGTENED = 4,
+  FRIGHTENED = 4,
   EATEN = 8,
   GH_WARP = 16,
-  GH_PORTAL = 32
+  RESTING = 32
 };
 
 #endif

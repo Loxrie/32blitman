@@ -2,10 +2,16 @@
 #include <iostream>
 
 #include "pacman.hpp"
-#include "ghost.hpp"
 #include "assets.hpp"
 
 using namespace blit;
+
+Rect pacmanAnims[16] = {
+  Rect(6,12,2,2),
+  Rect(4,12,2,2),
+  Rect(2,12,2,2),
+  Rect(0,12,2,2)
+};
 
 Pacman::Pacman() {
   size = Size(15,15);
@@ -16,7 +22,8 @@ Pacman::Pacman() {
   desired_direction = direction;
 
   speed = 0.8f;
-  power_timer = 0;
+  
+  power = 0;
 
   sprite = 0;
   lives = 3;
@@ -29,36 +36,25 @@ Pacman::Pacman() {
   };
 }
 
-void Pacman::anim_player() {
-  uint8_t offset = 0;
-  switch(direction) {
-    case Button::DPAD_LEFT:
-      offset = 0;
-      break;
-    case Button::DPAD_RIGHT:
-      offset = 4;
-      break;
-    case Button::DPAD_UP:
-      offset = 8;
-      break;
-    case Button::DPAD_DOWN:
-      offset = 12;
-      break;
-  }
+bool Pacman::is_pilled_up() {
+  return power;
+}
+
+void Pacman::animate() {
   bool animDirection = animation_direction;
-  switch (sprite % 4) {
+  switch (sprite) {
     case 0: 
-      sprite = offset + 1;
+      sprite = 1;
       animation_direction = true;
       break;
     case 1:
-      sprite = (animDirection) ? offset + 2 : offset + 0;
+      sprite = (animDirection) ? 2 : 0;
       break;
     case 2:
-      sprite = (animDirection) ? offset + 3 : offset + 1;
+      sprite = (animDirection) ? 3 : 1;
       break;
     case 3:
-      sprite = offset + 2;
+      sprite = 2;
       animation_direction = false;
       break;
   }
@@ -75,18 +71,27 @@ void Pacman::update(uint32_t time) {
   Point tile_pt = tile(location);
   uint32_t flags = map.get_flags(tile_pt);
 
+  if (flags & entityType::NOTHING) {
+    speed = 0.80f;
+    if (power)
+      speed = 0.90f;
+  }
+
   if (flags & entityType::PILL) {
-    if (power_timer <= 0)
+    if (power)
       speed = 0.71f;
+    else 
+      speed = 0.79f;
     map.layers["pills"].tiles[tile_pt.y * level_width + tile_pt.x] = 0;
   }
 
   if (flags & entityType::POWER) {
     speed = 0.90f;
-    power_timer = 30 * 1000;
+    power = 1;
+    power_timer.start();
     map.layers["pills"].tiles[tile_pt.y * level_width + tile_pt.x] = 0;
+    // ghost.set_state(ghostState::FRIGHTENED);
   }
-
 
   // TODO We are in a PORTAL.
   if (flags & entityType::PORTAL) {
@@ -134,12 +139,25 @@ void Pacman::update(uint32_t time) {
 
   uint32_t time_passed = time - last_update;
   if (time_passed > 10 / speed && moving_to == entityType::NOTHING) {
-    printf("Pacman::update last_update %d, speed %f\n", last_update, speed);
     last_update = time;
     location += movement;
-    // Should we expire power pill.
-    if (power_timer > 0) {
-      power_timer -= time_passed;
-    }
   }
+
+}
+
+void Pacman::render() {
+  uint32_t t = SpriteTransform::NONE;
+  switch(direction) {
+    case Button::DPAD_RIGHT:
+      t = SpriteTransform::R180;
+      break;
+    case Button::DPAD_UP:
+      t = SpriteTransform::R90;
+      break;
+    case Button::DPAD_DOWN:
+      t = SpriteTransform::R270;
+      break;
+  }
+
+  screen.sprite(pacmanAnims[sprite], world_to_screen(location), t);
 }

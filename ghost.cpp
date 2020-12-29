@@ -3,23 +3,30 @@
 
 using namespace blit;
 
-Rect ghostAnims[8] = {
+Rect ghostAnims[12] = {
   // Left
   Rect(0,4,2,2),
   Rect(2,4,2,2),
   // Right
-  Rect(4,14,2,2),
-  Rect(6,12,2,2),
+  Rect(4,4,2,2),
+  Rect(6,4,2,2),
   // Up
-  Rect(8,14,2,2),
-  Rect(10,14,2,2),
+  Rect(8,4,2,2),
+  Rect(10,4,2,2),
   // Down
-  Rect(12,14,2,2),
-  Rect(14,14,2,2)
+  Rect(12,4,2,2),
+  Rect(14,4,2,2),
+  // Edible
+  Rect(8,12,2,2),
+  Rect(10,12,2,2),
+  // Eaten
+  Rect(12,12,2,2),
+  Rect(14,12,2,2)
 };
 
 
 Ghost::Ghost() {
+  printf("Ghost::Ghost called.\n");
   size = Size(16, 16);
   location = Point((19*8) + 4,15*8);
   target = Vec2(player.location);
@@ -36,10 +43,40 @@ Ghost::Ghost() {
 
   collision_detection = [this](Point tile_pt) -> void {
     if(map.has_flag(tile_pt, entityType::WALL)) {
-        printf("Ghost::ghost collision detected %d:%d\n", tile_pt.x, tile_pt.y);
         this->moving_to = entityType::WALL;
     }
   };
+}
+
+void Ghost::animate() {
+  uint8_t offset = 0;
+  switch(direction) {
+    case Button::DPAD_LEFT:
+      offset = 0;
+      break;
+    case Button::DPAD_RIGHT:
+      offset = 2;
+      break;
+    case Button::DPAD_UP:
+      offset = 4;
+      break;
+    case Button::DPAD_DOWN:
+      offset = 6;
+      break;
+  }
+  if (state & ghostState::FRIGHTENED) {
+    offset = 8;
+  } else if (state & ghostState::EATEN) {
+    offset = 10;
+  }
+  switch (sprite % 2) {
+    case 0: 
+      sprite = offset + 1;
+      break;
+    case 1:
+      sprite = offset;
+      break;
+  }
 }
 
 uint32_t Ghost::invertDirection() {
@@ -84,7 +121,6 @@ uint32_t Ghost::direction_to_target() {
   uint32_t index = decision_tile.y * level_width + decision_tile.x;
   auto search = mapOfJunctions.find(index);
   if (search == mapOfJunctions.end()) {
-    printf("Ghost::direction_to_target freezing ghost, no mapping.\n");
     return 0;
   }
 
@@ -111,7 +147,6 @@ uint32_t Ghost::direction_to_target() {
         break;
     }
     Point source_tile = Point(decision_tile.x + vector.x, decision_tile.y + vector.y);
-    // printf("Ghost::direction_to_target %d:%d\n", source_tile.x, source_tile.y);
     float distance = fabs(Vec2(target_tile.x - source_tile.x, target_tile.y - source_tile.y).length());
     if (distance < min_distance) {
       min_distance = distance;
@@ -121,17 +156,65 @@ uint32_t Ghost::direction_to_target() {
 
   return min_direction;
 }
+
+uint32_t Ghost::random_direction() {
+  int bloop = rand();
+  uint32_t inverted_direction = invertDirection();
+  uint32_t random_direction = 0;
+  Point stuck_at = tile(location);
+  uint32_t index = stuck_at.y * level_width + stuck_at.x;
+  auto search = mapOfJunctions.find(index);
+  if (search == mapOfJunctions.end()) {
+    return 0;
+  }
+
+  std::vector<uint32_t> destinations;
+  for (uint32_t corner : search->second) {
+    if (corner == inverted_direction) {
+      continue;
+    }
+    auto dirSearch = dirToVector.find(corner);
+    if (dirSearch == dirToVector.end()) {
+      return 0;
+    }
+    Vec2 vector = dirSearch->second;
+
+    moving_to = entityType::NOTHING;
+    map.tiles_in_rect(center(location + vector), collision_detection);
+    if (moving_to == entityType::NOTHING) {
+      destinations.push_back(corner);
+      break;
+    }
+  }
+
+  random_direction = destinations[bloop % destinations.size()];
+  printf("Ghost::update scared chose %d\n", random_direction);
+  return random_direction;
+}
   
+void Ghost::set_move_state(ghostState s) {
+  state &= ~ ghostState::CHASE;
+  state &= ~ ghostState::SCATTER;
+  set_state(s);
+}
+
+void Ghost::set_state(ghostState s) {
+  state |= s;
+}
+
 void Ghost::update(uint32_t time) {
+  printf("%s::update called.\n", name.c_str());
   static uint32_t last_update = 0;
-  printf("Ghost::update time %d\n", time);
   Point tile_pt = tile(location);
   uint32_t flags = map.get_flags(tile_pt);
 
   // Adjust speed for being in WARP zone.
   if (flags & entityType::WARP) {
-    printf("Ghost::update in warp.\n");
-    speed = 0.4f;
+    speed = 0.40f;
+  } else if (state & ghostState::FRIGHTENED) {
+    speed = 0.50f;
+  } else {
+    speed = 0.75f;
   }
 
   // TODO We are in a PORTAL.
@@ -146,12 +229,10 @@ void Ghost::update(uint32_t time) {
   }
 
   if (location.x % 8 > 0 || location.y % 8 > 0) {
-    printf("Ghost::update liminal, moving.\n");
     // Only update every "speed" fraction of frames. Assume 10ms update.
     // So by default we start updating at 10/0.75. 
     // This won't make much diff. for now.  Maybe move 2pixels per tic?
     if (time - last_update > 10 / speed) {
-      printf("Ghost::update last_update %d, speed %f\n", last_update, speed);
       last_update = time;
       switch (direction) {
         case Button::DPAD_LEFT:
@@ -177,15 +258,18 @@ void Ghost::update(uint32_t time) {
   target = player.location;
 
   // If we're at a junction point choose a new direction.
-  if (flags & entityType::JUNCTION) {
+  bool chase = state & ghostState::CHASE && !(state & ghostState::FRIGHTENED);
+  if (flags & entityType::JUNCTION && chase) {
     desired_direction = direction_to_target();
+  } else if (flags & entityType::JUNCTION && state & ghostState::FRIGHTENED) {
+    desired_direction = random_direction();
+    printf("Ghost::update fleeing %d\n", desired_direction);
   }
 
   // If our desired path doesn't match our current one try to change.
   if (desired_direction != direction) {
     auto dirSearch = dirToVector.find(desired_direction);
     if (dirSearch == dirToVector.end()) {
-      printf("Freezing ghost, no dir mapping.\n");
       return;
     }
     Vec2 desired_movement = dirSearch->second;
@@ -199,12 +283,10 @@ void Ghost::update(uint32_t time) {
     moving_to = entityType::NOTHING;
     auto dirSearch = dirToVector.find(direction);
     if (dirSearch == dirToVector.end()) {
-      printf("Freezing ghost, no dir mapping.\n");
       return;
     }
     Vec2 movement = dirSearch->second;
     bounds_lr = center(location + movement);
-    printf("Can we move into %d:%d %d:%d.\n", bounds_lr.x, bounds_lr.y, bounds_lr.w, bounds_lr.h);
     map.tiles_in_rect(bounds_lr, collision_detection);
   }
   
@@ -215,13 +297,11 @@ void Ghost::update(uint32_t time) {
     uint32_t index = stuck_at.y * level_width + stuck_at.x;
     auto search = mapOfJunctions.find(index);
     if (search == mapOfJunctions.end()) {
-      printf("No mapping in map of junctions.\n");
       return;
     }
 
     for (uint32_t corner : search->second) {
       if (corner == inverted_direction) {
-        printf("Ghost::update corner refusing to u-turn.\n");
         continue;
       }
       auto dirSearch = dirToVector.find(corner);
@@ -260,11 +340,6 @@ void Ghost::update(uint32_t time) {
 }
 
 void Ghost::render() {
-  if (state & ghostState::GH_PORTAL) {
-    printf("Ghost::render in portal.\n");
-    return;
-  }
-    
-  printf("Ghost::render %d:%d\n", location.x, location.y);
+  printf("Ghost::render %d:%d\n", location.x, location.y);    
   screen.sprite(ghostAnims[sprite], world_to_screen(location));
 }

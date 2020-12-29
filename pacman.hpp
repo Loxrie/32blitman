@@ -12,7 +12,10 @@ struct Pacman {
     uint32_t direction;
 
     float speed;
-    uint32_t power_timer;
+
+    void power_timer_callback(blit::Timer &t);
+    blit::Timer power_timer;
+    bool power;
     
     blit::Vec2 desired_movement;
     uint32_t desired_direction;
@@ -24,8 +27,13 @@ struct Pacman {
     uint32_t lives;
 
     Pacman();
-    void anim_player();
+    
+    bool is_pilled_up();
+
+    void animate();
     void update(uint32_t time);
+    void render();
+    
     // How do I make this not be here?
     std::function<void(blit::Point)> collision_detection;
 };
