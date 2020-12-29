@@ -6,6 +6,7 @@
 #define PACMAN_H
 
 struct Pacman {
+    
     blit::Size size;
     blit::Vec2 location;
     blit::Vec2 movement;

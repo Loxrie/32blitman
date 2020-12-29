@@ -78,10 +78,12 @@ void Pacman::update(uint32_t time) {
   }
 
   if (flags & entityType::PILL) {
+    printf("Did I eat a pill?\n");
     if (power)
       speed = 0.71f;
     else 
       speed = 0.79f;
+    score += 1;
     map.layers["pills"].tiles[tile_pt.y * level_width + tile_pt.x] = 0;
   }
 
@@ -89,8 +91,9 @@ void Pacman::update(uint32_t time) {
     speed = 0.90f;
     power = 1;
     power_timer.start();
+    score += 10;
     map.layers["pills"].tiles[tile_pt.y * level_width + tile_pt.x] = 0;
-    // ghost.set_state(ghostState::FRIGHTENED);
+    set_ghost_state(ghostState::FRIGHTENED);
   }
 
   // TODO We are in a PORTAL.

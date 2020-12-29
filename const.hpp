@@ -88,7 +88,7 @@ enum entityType {
   WALL = 1,
   PILL = 2,
   POWER = 4,
-  JUNCTION = 16, // 62 Normal junction. For Ghosts.
+  JUNCTION = 16, // Normal junction. For Ghosts.
   WARP = 32,
   PORTAL = 64
 };

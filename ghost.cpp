@@ -3,42 +3,16 @@
 
 using namespace blit;
 
-Rect ghostAnims[12] = {
-  // Left
-  Rect(0,4,2,2),
-  Rect(2,4,2,2),
-  // Right
-  Rect(4,4,2,2),
-  Rect(6,4,2,2),
-  // Up
-  Rect(8,4,2,2),
-  Rect(10,4,2,2),
-  // Down
-  Rect(12,4,2,2),
-  Rect(14,4,2,2),
-  // Edible
-  Rect(8,12,2,2),
-  Rect(10,12,2,2),
-  // Eaten
-  Rect(12,12,2,2),
-  Rect(14,12,2,2)
-};
-
-
 Ghost::Ghost() {
-  printf("Ghost::Ghost called.\n");
   size = Size(16, 16);
-  location = Point((19*8) + 4,15*8);
-  target = Vec2(player.location);
 
   direction = Button::DPAD_LEFT;
   desired_direction = direction;
 
   // Speed in weirds.
   speed = 0.75f;
+  last_update = 0;
   
-  state = ghostState::CHASE;
-
   sprite = 0;
 
   collision_detection = [this](Point tile_pt) -> void {
@@ -102,7 +76,7 @@ Rect Ghost::center(Point pos) {
   return Rect(pos.x + (size.w/4), pos.y + (size.h/4), size.h/2, size.w/2);
 }
 
-uint32_t Ghost::direction_to_target() {
+uint32_t Ghost::direction_to_target(Point target) {
   /**
    * https://gameinternals.com/understanding-pac-man-ghost-behavior
    *
@@ -115,7 +89,22 @@ uint32_t Ghost::direction_to_target() {
 
   uint32_t where_will_we_go = 0;
   Point decision_tile = tile(location);
-  Point target_tile = tile(target);
+  target_tile = tile(target);
+
+  switch(player.direction) {
+    case Button::DPAD_LEFT:
+      target_tile.x -= target_offset;
+      break;
+    case Button::DPAD_RIGHT:
+      target_tile.x += target_offset;
+      break;
+    case Button::DPAD_UP:
+      target_tile.y -= target_offset;
+      break;
+    case Button::DPAD_DOWN:
+      target_tile.y += target_offset;
+      break;
+  }
   
   uint32_t inverted_direction = invertDirection();
   uint32_t index = decision_tile.y * level_width + decision_tile.x;
@@ -188,7 +177,7 @@ uint32_t Ghost::random_direction() {
   }
 
   random_direction = destinations[bloop % destinations.size()];
-  printf("Ghost::update scared chose %d\n", random_direction);
+  printf("%s::update scared chose %d\n", name.c_str(), random_direction);
   return random_direction;
 }
   
@@ -203,8 +192,6 @@ void Ghost::set_state(ghostState s) {
 }
 
 void Ghost::update(uint32_t time) {
-  printf("%s::update called.\n", name.c_str());
-  static uint32_t last_update = 0;
   Point tile_pt = tile(location);
   uint32_t flags = map.get_flags(tile_pt);
 
@@ -255,15 +242,19 @@ void Ghost::update(uint32_t time) {
   // Setup
   moving_to = entityType::NOTHING;
   Rect bounds_lr;
-  target = player.location;
 
+  switch(player.direction) {
+
+  }
+
+  Vec2 target = player.location;
   // If we're at a junction point choose a new direction.
   bool chase = state & ghostState::CHASE && !(state & ghostState::FRIGHTENED);
   if (flags & entityType::JUNCTION && chase) {
-    desired_direction = direction_to_target();
+    desired_direction = direction_to_target(target);
   } else if (flags & entityType::JUNCTION && state & ghostState::FRIGHTENED) {
     desired_direction = random_direction();
-    printf("Ghost::update fleeing %d\n", desired_direction);
+    printf("%s::update fleeing %d\n", name.c_str(), desired_direction);
   }
 
   // If our desired path doesn't match our current one try to change.
@@ -340,6 +331,8 @@ void Ghost::update(uint32_t time) {
 }
 
 void Ghost::render() {
-  printf("Ghost::render %d:%d\n", location.x, location.y);    
+  screen.pen = Pen(255,0,255);
+  screen.line(world_to_screen(location), world_to_screen(target_tile*8));
+  
   screen.sprite(ghostAnims[sprite], world_to_screen(location));
 }

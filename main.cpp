@@ -9,22 +9,28 @@ using namespace blit;
 Mat3 camera;
 
 uint8_t *level_data;
+uint8_t *pill_data;
 
 TileMap *level;
 
 Map map(blit::Rect(0, 0, level_height, level_height));
 
-SpriteSheet *sprites;
 Pacman player;
 Blinky blinky;
 Pinky pinky;
 Inky inky;
 Clyde clyde;
 
-std::vector<Ghost *> ghosts = {&blinky};
+std::vector<Ghost *> ghosts = {&blinky, &pinky, &inky, &clyde};
 
 void power_timer_callback(Timer &timer) {
   player.power = 0;
+}
+
+void set_ghost_state(ghostState s) {
+  for (auto ghost : ghosts) {
+    ghost->set_state(s);
+  }
 }
 
 Timer power_timer;
@@ -51,7 +57,6 @@ void init() {
 
   // Load sprite sheet.
   screen.sprites = SpriteSheet::load(asset_level);
-  sprites = SpriteSheet::load(asset_sprites);
 
   // Malloc memory for level.
   level_data = (uint8_t *)malloc(level_width * level_height);
@@ -81,11 +86,15 @@ void init() {
   map.layers["background"].add_flags({0,62,63}, entityType::NOTHING);
   // Set pills.
   std::vector<uint8_t> pillVector(asset_pills_length);
-  pillVector.assign(&asset_pills[0], &asset_pills[asset_pills_length]);
+  pill_data = (uint8_t *)malloc(level_width * level_height);
+  for(auto x = 0; x < level_width * level_height; x++){
+    pill_data[x] = asset_pills[x];
+  }
+  pillVector.assign(&pill_data[0], &pill_data[asset_pills_length]);
+  // pillVector.assign(&asset_pills[0], &asset_pills[asset_pills_length]);
   map.add_layer("pills", pillVector);
   map.layers["pills"].add_flags(238, entityType::PILL);
   map.layers["pills"].add_flags(239, entityType::POWER);
-
 }
 
 // Line-interrupt callback for level->draw that applies our camera transformation
@@ -199,6 +208,12 @@ void render(uint32_t t) {
   //   screen.line(player.debug_bounds[0], player.debug_bounds[player.debug_bounds.size()-1]);
   // }
 
+  // Draw the header bar
+  screen.pen = Pen(0, 0, 1);
+  screen.rectangle(Rect(0, 0, screen_width, 10));
+  screen.pen = Pen(255, 255, 255);
+  screen.text("    " + std::to_string(player.score), minimal_font, Point(2, 2));
+  
   screen.pen = Pen(0, 0, 0);
 }
 
