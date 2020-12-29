@@ -77,22 +77,22 @@ void Pacman::update(uint32_t time) {
       speed = 0.90f;
   }
 
-  if (flags & entityType::PILL) {
+  if (level_get(tile_pt) == entityType::PILL) {
     printf("Did I eat a pill?\n");
     if (power)
       speed = 0.71f;
     else 
       speed = 0.79f;
     score += 1;
-    map.layers["pills"].tiles[tile_pt.y * level_width + tile_pt.x] = 0;
+    level_set(tile_pt, entityType::NOTHING);
   }
 
-  if (flags & entityType::POWER) {
+  if (level_get(tile_pt) == entityType::POWER) {
     speed = 0.90f;
     power = 1;
     power_timer.start();
     score += 10;
-    map.layers["pills"].tiles[tile_pt.y * level_width + tile_pt.x] = 0;
+    level_set(tile_pt, entityType::NOTHING);
     set_ghost_state(ghostState::FRIGHTENED);
   }
 

@@ -86,11 +86,11 @@ static std::map<uint32_t, std::vector<uint32_t>> mapOfJunctions = {
 enum entityType {
   NOTHING = 0,
   WALL = 1,
-  PILL = 2,
-  POWER = 4,
-  JUNCTION = 16, // Normal junction. For Ghosts.
-  WARP = 32,
-  PORTAL = 64
+  JUNCTION = 2, // Normal junction. For Ghosts.
+  WARP = 4,
+  PORTAL = 8,
+  PILL = 238,
+  POWER = 239
 };
 
 enum ghostState {

@@ -36,6 +36,10 @@ struct Ghost {
     blit::Rect center(blit::Point pos);
     uint32_t direction_to_target(blit::Point target);
     uint32_t random_direction();
+
+    bool eaten();
+    void eaten(ghostState s);
+    
     void set_move_state(ghostState s);
     void set_state(ghostState s);
     void update(uint32_t time);

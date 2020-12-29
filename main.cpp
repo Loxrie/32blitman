@@ -33,10 +33,34 @@ void set_ghost_state(ghostState s) {
   }
 }
 
+bool bodge_ghost_animation = false;
+Timer timer_level_animate;
 Timer power_timer;
 
 bool operator==(Point a, Point b) {
   return (a.x == b.x && a.y == b.y);
+}
+
+void animate_level(Timer &timer) {
+  player.animate();
+  if (bodge_ghost_animation) {
+    for (auto ghost : ghosts) {
+      ghost->animate();
+    }
+  }
+  bodge_ghost_animation = !bodge_ghost_animation;
+}
+
+entityType level_get(Point p) {
+  if(p.y < 0 || p.x < 0 || p.y >= level_height || p.x >= level_width) {
+    return entityType::WALL;
+  }
+  entityType entity = (entityType)pill_data[p.y * level_width + p.x];
+  return entity;
+}
+
+void level_set(Point p, entityType e) {
+  pill_data[p.y * level_width + p.x] = e;
 }
 
 float deg2rad(float a) {
@@ -54,6 +78,8 @@ bool game_start;
 void init() {
   game_start = false;
   set_screen_mode(ScreenMode::hires);
+
+  timer_level_animate.init(animate_level, 50, -1);
 
   // Load sprite sheet.
   screen.sprites = SpriteSheet::load(asset_level);
@@ -85,16 +111,10 @@ void init() {
   map.layers["background"].add_flags(254, entityType::PORTAL);
   map.layers["background"].add_flags({0,62,63}, entityType::NOTHING);
   // Set pills.
-  std::vector<uint8_t> pillVector(asset_pills_length);
   pill_data = (uint8_t *)malloc(level_width * level_height);
   for(auto x = 0; x < level_width * level_height; x++){
     pill_data[x] = asset_pills[x];
   }
-  pillVector.assign(&pill_data[0], &pill_data[asset_pills_length]);
-  // pillVector.assign(&asset_pills[0], &asset_pills[asset_pills_length]);
-  map.add_layer("pills", pillVector);
-  map.layers["pills"].add_flags(238, entityType::PILL);
-  map.layers["pills"].add_flags(239, entityType::POWER);
 }
 
 // Line-interrupt callback for level->draw that applies our camera transformation
@@ -143,11 +163,11 @@ Point tile(Point point) {
   return Point(clamp(point.x/8,0,level_width),clamp(point.y/8,0,level_height));
 }
 
-void draw_layer(MapLayer &layer) {
+void draw_layer(uint8_t *layer) {
   draw_layer(layer, 0);
 }
 
-void draw_layer(MapLayer &layer, int32_t offset) {
+void draw_layer(uint8_t *layer, int32_t offset) {
   Point tl = screen_to_world(Point(0, 0));
   Point br = screen_to_world(Point(screen.bounds.w, screen.bounds.h));
 
@@ -157,9 +177,9 @@ void draw_layer(MapLayer &layer, int32_t offset) {
   for (uint8_t y = tlt.y; y <= brt.y; y++) {
     for (uint8_t x = tlt.x; x <= brt.x; x++) {
       Point pt = world_to_screen(Point(x * 8 + offset, y * 8 + offset));
-      int32_t ti = layer.map->tile_index(Point(x, y));
+      int32_t ti = y * level_width + x;
       if (ti != -1) {
-        uint8_t si = layer.tiles[ti];
+        uint8_t si = pill_data[ti];
         if (si != 0) {
           screen.sprite(si, pt);
         }
@@ -181,7 +201,7 @@ void render(uint32_t t) {
   screen.clear();
   level->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), level_line_interrupt_callback);
   
-  draw_layer(map.layers["pills"], 4);
+  draw_layer(pill_data, 4);
 
   player.render();
 
@@ -230,6 +250,7 @@ void update(uint32_t t) {
     srand(time(NULL));
     if (buttons & Button::A) {
       game_start = false;
+      timer_level_animate.stop();
     } else {
       player.update(t);
 
@@ -237,21 +258,16 @@ void update(uint32_t t) {
       for (auto ghost : ghosts) {
         ghost->update(t);
         Point ghost_pt = tile(ghost->location);
-        if (player.is_pilled_up() && pacman_pt == ghost_pt) {
-          ghost->set_state(ghostState::EATEN);
-        }
-      }
-      
-      if (t - last_animation > 1000/30) {
-        last_animation = t;
-        player.animate();
-        for (auto ghost : ghosts) {
-          ghost->animate();
+        if (player.is_pilled_up() && !ghost->eaten() && pacman_pt == ghost_pt) {
+          printf("Pacman ate %s.\n", ghost->name.c_str());
+          ghost->eaten(ghostState::EATEN);
+          player.score += 100;
         }
       }
     }
   } else if (buttons & Button::A) {
     game_start = true;
+    timer_level_animate.start();
   }
 
   update_camera();

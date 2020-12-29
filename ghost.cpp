@@ -38,11 +38,11 @@ void Ghost::animate() {
       offset = 6;
       break;
   }
-  if (state & ghostState::FRIGHTENED) {
-    offset = 8;
-  } else if (state & ghostState::EATEN) {
+  if (state & ghostState::EATEN) {
     offset = 10;
-  }
+  } else if (state & ghostState::FRIGHTENED) {
+    offset = 8;
+  } 
   switch (sprite % 2) {
     case 0: 
       sprite = offset + 1;
@@ -181,6 +181,14 @@ uint32_t Ghost::random_direction() {
   return random_direction;
 }
   
+bool Ghost::eaten() {
+  return state & ghostState::EATEN;
+}
+
+void Ghost::eaten(ghostState s) {
+  set_state(s);
+}
+
 void Ghost::set_move_state(ghostState s) {
   state &= ~ ghostState::CHASE;
   state &= ~ ghostState::SCATTER;
@@ -219,7 +227,7 @@ void Ghost::update(uint32_t time) {
     // Only update every "speed" fraction of frames. Assume 10ms update.
     // So by default we start updating at 10/0.75. 
     // This won't make much diff. for now.  Maybe move 2pixels per tic?
-    if (time - last_update > 10 / speed) {
+    if (time - last_update > 20 / speed) {
       last_update = time;
       switch (direction) {
         case Button::DPAD_LEFT:
@@ -242,10 +250,6 @@ void Ghost::update(uint32_t time) {
   // Setup
   moving_to = entityType::NOTHING;
   Rect bounds_lr;
-
-  switch(player.direction) {
-
-  }
 
   Vec2 target = player.location;
   // If we're at a junction point choose a new direction.
