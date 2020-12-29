@@ -26,6 +26,9 @@ Ghost::Ghost() {
 
   direction = Button::DPAD_LEFT;
   desired_direction = direction;
+
+  // Speed in weirds.
+  speed = 0.75f;
   
   state = ghostState::CHASE;
 
@@ -120,31 +123,39 @@ uint32_t Ghost::direction_to_target() {
 }
   
 void Ghost::update(uint32_t time) {
+  static uint32_t last_update = 0;
   printf("Ghost::update time %d\n", time);
   Point tile_pt = tile(location);
   uint32_t flags = map.get_flags(tile_pt);
-  float vector_multiplier = 1.0f;
 
   // Adjust speed for being in WARP zone.
   if (flags & entityType::WARP) {
-    vector_multiplier = 0.5f;
+    printf("Ghost::update in warp.\n");
+    speed = 0.4f;
   }
 
   if (location.x % 8 > 0 || location.y % 8 > 0) {
     printf("Ghost::update liminal, moving.\n");
-    switch (direction) {
-      case Button::DPAD_LEFT:
-        location.x -= (1.0f * vector_multiplier);
-        break;
-      case Button::DPAD_RIGHT:
-        location.x += (1.0f * vector_multiplier);
-        break;
-      case Button::DPAD_UP:
-        location.y -= (1.0f * vector_multiplier);
-        break;
-      case Button::DPAD_DOWN:
-        location.y += (1.0f * vector_multiplier);
-        break;
+    // Only update every "speed" fraction of frames. Assume 10ms update.
+    // So by default we start updating at 10/0.75. 
+    // This won't make much diff. for now.  Maybe move 2pixels per tic?
+    if (time - last_update > 10 / speed) {
+      printf("Ghost::update last_update %d, speed %f\n", last_update, speed);
+      last_update = time;
+      switch (direction) {
+        case Button::DPAD_LEFT:
+          location.x -= 1.0f;
+          break;
+        case Button::DPAD_RIGHT:
+          location.x += 1.0f;
+          break;
+        case Button::DPAD_UP:
+          location.y -= 1.0f;
+          break;
+        case Button::DPAD_DOWN:
+          location.y += 1.0f;
+          break;
+      }
     }
     return;
   }
@@ -232,18 +243,16 @@ void Ghost::update(uint32_t time) {
   // Set Movement for current direction.
   switch (direction) {
     case Button::DPAD_LEFT:
-      location.x -= (1.0f * vector_multiplier);
+      location.x -= 1.0f;
       break;
     case Button::DPAD_RIGHT:
-      printf("Ghost::update pre  loc x %d\n", location.x);
-      location.x += (1.0f * vector_multiplier);
-      printf("Ghost::update post loc x %d\n", location.x);
+      location.x += 1.0f;
       break;
     case Button::DPAD_UP:
-      location.y -= (1.0f * vector_multiplier);
+      location.y -= 1.0f;
       break;
     case Button::DPAD_DOWN:
-      location.y += (1.0f * vector_multiplier);
+      location.y += 1.0f;
       break;
   }
 }

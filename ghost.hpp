@@ -12,7 +12,7 @@ struct Ghost {
   uint32_t direction;
   uint32_t desired_direction;
 
-  blit::Tween tween;
+  float speed;
 
   uint8_t state;
 
