@@ -9,6 +9,11 @@ constexpr uint16_t level_height = 64;
 
 const bool debug_logging = false;
 
+const blit::Point ghost_house_door = blit::Point((19 * 8) + 4, 15 * 8);
+const blit::Point ghost_house = blit::Point((19 * 8) + 4, 18 * 8);
+const blit::Point ghost_house_left = blit::Point(18*8, 18*8);
+const blit::Point ghost_house_right = blit::Point(21*8, 18*8);
+
 static std::map<uint32_t, blit::Vec2> dirToVector = {
   { blit::Button::DPAD_LEFT, blit::Vec2(-8, 0) },
   { blit::Button::DPAD_RIGHT, blit::Vec2(8, 0) },
@@ -99,7 +104,9 @@ enum ghostState {
   FRIGHTENED = 4,
   EATEN = 8,
   GH_WARP = 16,
-  RESTING = 32
+  RESTING = 32,
+  ARRIVING = 64,
+  LEAVING = 128
 };
 
 #endif

@@ -22,6 +22,7 @@ Inky inky;
 Clyde clyde;
 
 std::vector<Ghost *> ghosts = {&blinky, &pinky, &inky, &clyde};
+// std::vector<Ghost *> ghosts = {&blinky};
 
 void power_timer_callback(Timer &timer) {
   player.power = 0;
@@ -39,6 +40,10 @@ Timer power_timer;
 
 bool operator==(Point a, Point b) {
   return (a.x == b.x && a.y == b.y);
+}
+
+bool operator!=(Point a, Point b) {
+  return (a.x != b.x || a.y != b.y);
 }
 
 void animate_level(Timer &timer) {
@@ -259,7 +264,6 @@ void update(uint32_t t) {
         ghost->update(t);
         Point ghost_pt = tile(ghost->location);
         if (player.is_pilled_up() && !ghost->eaten() && pacman_pt == ghost_pt) {
-          printf("Pacman ate %s.\n", ghost->name.c_str());
           ghost->eaten(ghostState::EATEN);
           player.score += 100;
         }

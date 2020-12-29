@@ -21,6 +21,7 @@ extern Inky inky;
 extern Clyde clyde;
 
 extern bool operator==(blit::Point a, blit::Point b);
+extern bool operator!=(blit::Point a, blit::Point b);
 
 entityType level_get(blit::Point p);
 void level_set(blit::Point p, entityType e);

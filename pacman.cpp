@@ -78,7 +78,6 @@ void Pacman::update(uint32_t time) {
   }
 
   if (level_get(tile_pt) == entityType::PILL) {
-    printf("Did I eat a pill?\n");
     if (power)
       speed = 0.71f;
     else 

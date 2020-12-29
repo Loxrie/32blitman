@@ -177,7 +177,6 @@ uint32_t Ghost::random_direction() {
   }
 
   random_direction = destinations[bloop % destinations.size()];
-  printf("%s::update scared chose %d\n", name.c_str(), random_direction);
   return random_direction;
 }
   
@@ -199,12 +198,48 @@ void Ghost::set_state(ghostState s) {
   state |= s;
 }
 
+void Ghost::handle_house() {
+  if (state & ghostState::EATEN && location == ghost_house_door) {
+    direction = DPAD_DOWN;
+    state |= ghostState::ARRIVING;
+  }
+
+  if (state & ghostState::LEAVING && location == ghost_house) {
+    direction = Button::DPAD_UP;
+    state &= ~ ghostState::RESTING;
+  }
+
+  if (state & ghostState::LEAVING && location == ghost_house_door) {
+    direction = Button::DPAD_LEFT;
+    state &= ~ ghostState::LEAVING;
+  }
+
+  if (state & ghostState::EATEN && location == ghost_house) {
+    direction = Button::DPAD_LEFT;
+    state &= ~ ghostState::EATEN;
+    state &= ~ ghostState::ARRIVING;
+    state &= ~ ghostState::FRIGHTENED;
+    state |= ghostState::LEAVING;
+    return;
+  }
+  
+  if (state & ghostState::RESTING) {
+    if (location == ghost_house_left) {
+      direction = Button::DPAD_RIGHT;
+    } else if (location == ghost_house_right) {
+      direction = Button::DPAD_LEFT;
+    }
+  }
+}
+
 void Ghost::update(uint32_t time) {
   Point tile_pt = tile(location);
   uint32_t flags = map.get_flags(tile_pt);
 
   // Adjust speed for being in WARP zone.
-  if (flags & entityType::WARP) {
+  if (state & ghostState::EATEN) {
+    speed = 1.0f;
+  } else if (flags & entityType::WARP) {
     speed = 0.40f;
   } else if (state & ghostState::FRIGHTENED) {
     speed = 0.50f;
@@ -223,7 +258,14 @@ void Ghost::update(uint32_t time) {
     flags = map.get_flags(tile_pt);
   }
 
-  if (location.x % 8 > 0 || location.y % 8 > 0) {
+  handle_house();
+
+  if (location.x % 8 > 0 
+      || location.y % 8 > 0 
+      || state & ghostState::ARRIVING 
+      || state & ghostState::LEAVING 
+      || state & ghostState::RESTING) 
+  {
     // Only update every "speed" fraction of frames. Assume 10ms update.
     // So by default we start updating at 10/0.75. 
     // This won't make much diff. for now.  Maybe move 2pixels per tic?
@@ -254,11 +296,12 @@ void Ghost::update(uint32_t time) {
   Vec2 target = player.location;
   // If we're at a junction point choose a new direction.
   bool chase = state & ghostState::CHASE && !(state & ghostState::FRIGHTENED);
-  if (flags & entityType::JUNCTION && chase) {
+  if (flags & entityType::JUNCTION && eaten()) {
+    desired_direction = direction_to_target(ghost_house_door);
+  } else if (flags & entityType::JUNCTION && chase) {
     desired_direction = direction_to_target(target);
   } else if (flags & entityType::JUNCTION && state & ghostState::FRIGHTENED) {
     desired_direction = random_direction();
-    printf("%s::update fleeing %d\n", name.c_str(), desired_direction);
   }
 
   // If our desired path doesn't match our current one try to change.
@@ -335,8 +378,8 @@ void Ghost::update(uint32_t time) {
 }
 
 void Ghost::render() {
-  screen.pen = Pen(255,0,255);
-  screen.line(world_to_screen(location), world_to_screen(target_tile*8));
+  // screen.pen = Pen(255,0,255);
+  // screen.line(world_to_screen(location), world_to_screen(target_tile*8));
   
   screen.sprite(ghostAnims[sprite], world_to_screen(location));
 }

@@ -17,9 +17,12 @@ Blinky::Blinky() {
   ghostAnims[6] = Rect(12,4,2,2);
   ghostAnims[7] = Rect(14,4,2,2);
   ghostAnims[8] = Rect(8,12,2,2);
-  ghostAnims[9] = Rect(10,12,2,2);
+  ghostAnims[9] = Rect(8,12,2,2);
   ghostAnims[11] = Rect(12,12,2,2);
   ghostAnims[10] = Rect(14,12,2,2);
+
+  // When power pill running low sub this in for animation 9.
+  //   ghostAnims[9] = Rect(10,12,2,2);
 
   target_offset = 0;
   location = Point((19*8) + 4,15*8);
@@ -38,7 +41,7 @@ Pinky::Pinky() {
   ghostAnims[6] = Rect(12,6,2,2);
   ghostAnims[7] = Rect(14,6,2,2);
   ghostAnims[8] = Rect(8,12,2,2);
-  ghostAnims[9] = Rect(10,12,2,2);
+  ghostAnims[9] = Rect(8,12,2,2);
   ghostAnims[11] = Rect(14,12,2,2);
   ghostAnims[10] = Rect(12,12,2,2);
 
@@ -59,7 +62,7 @@ Inky::Inky() {
   ghostAnims[6] = Rect(12,8,2,2);
   ghostAnims[7] = Rect(14,8,2,2);
   ghostAnims[8] = Rect(8,12,2,2);
-  ghostAnims[9] = Rect(10,12,2,2);
+  ghostAnims[9] = Rect(8,12,2,2);
   ghostAnims[11] = Rect(12,12,2,2);
   ghostAnims[10] = Rect(14,12,2,2);
 
@@ -80,7 +83,7 @@ Clyde::Clyde() {
   ghostAnims[6] = Rect(12,10,2,2);
   ghostAnims[7] = Rect(14,10,2,2);
   ghostAnims[8] = Rect(8,12,2,2);
-  ghostAnims[9] = Rect(10,12,2,2);
+  ghostAnims[9] = Rect(8,12,2,2);
   ghostAnims[11] = Rect(12,12,2,2);
   ghostAnims[10] = Rect(14,12,2,2);
   

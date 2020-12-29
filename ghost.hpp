@@ -10,7 +10,7 @@ struct Ghost {
   public:
     std::string name;
     
-    blit::Rect ghostAnims[12];
+    blit::Rect ghostAnims[14];
 
     blit::Size size;
     blit::Point location;
@@ -42,6 +42,7 @@ struct Ghost {
     
     void set_move_state(ghostState s);
     void set_state(ghostState s);
+    void handle_house();
     void update(uint32_t time);
     void animate();
     void render();
