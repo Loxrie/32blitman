@@ -5,9 +5,7 @@
 
 using namespace blit;
 
-Blinky::Blinky() {
-  name = "Blinky";
-
+void Blinky::init() {
   ghostAnims[0] = Rect(0,4,2,2);
   ghostAnims[1] = Rect(2,4,2,2);
   ghostAnims[2] = Rect(4,4,2,2);
@@ -26,12 +24,19 @@ Blinky::Blinky() {
 
   target_offset = 0;
   location = Point((19*8) + 4,15*8);
+  direction = Button::DPAD_LEFT;
+  desired_direction = direction;
+  speed = 0.75f;
   state = ghostState::CHASE;
 }
 
-Pinky::Pinky() {
-  name = "Pinky";
+Blinky::Blinky() {
+  name = "Blinky";
 
+  init();
+}
+
+void Pinky::init() {
   ghostAnims[0] = Rect(0,6,2,2);
   ghostAnims[1] = Rect(2,6,2,2);
   ghostAnims[2] = Rect(4,6,2,2);
@@ -47,12 +52,20 @@ Pinky::Pinky() {
 
   target_offset = 4;
   location = Point((18*8),18*8);
+  direction = Button::DPAD_LEFT;
+  desired_direction = direction;
+  speed = 0.75f;
+
   state = ghostState::CHASE | ghostState::RESTING | ghostState::LEAVING;
 }
 
-Inky::Inky() {
-  name = "Inky";
-  
+Pinky::Pinky() {
+  name = "Pinky";
+
+  init();
+}
+
+void Inky::init() {
   ghostAnims[0] = Rect(0,8,2,2);
   ghostAnims[1] = Rect(2,8,2,2);
   ghostAnims[2] = Rect(4,8,2,2);
@@ -68,12 +81,20 @@ Inky::Inky() {
 
   target_offset = 2;
   location = Point((19*8) + 4,18*8);
+  direction = Button::DPAD_LEFT;
+  desired_direction = direction;
+  speed = 0.75f;
+
   state = ghostState::CHASE | ghostState::RESTING;
 }
 
-Clyde::Clyde() {
-  name = "Clyde";
+Inky::Inky() {
+  name = "Inky";
+  
+  init();
+}
 
+void Clyde::init() {
   ghostAnims[0] = Rect(0,10,2,2);
   ghostAnims[1] = Rect(2,10,2,2);
   ghostAnims[2] = Rect(4,10,2,2);
@@ -90,5 +111,15 @@ Clyde::Clyde() {
   // Wrong but it'll do for now.
   target_offset = -4;
   location = Point((21*8),18*8);
+  direction = Button::DPAD_LEFT;
+  desired_direction = direction;
+  speed = 0.75f;
+
   state = ghostState::CHASE | ghostState::RESTING;
+}
+
+Clyde::Clyde() {
+  name = "Clyde";
+
+  init();
 }

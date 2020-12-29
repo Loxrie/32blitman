@@ -36,6 +36,14 @@ Pacman::Pacman() {
   };
 }
 
+void Pacman::init() {
+  location = Vec2((19*8)+4,27*8);
+  movement = Vec2(0,0);
+  direction = 0;
+  desired_movement = movement;
+  desired_direction = direction;
+}
+
 bool Pacman::is_pilled_up() {
   return power;
 }

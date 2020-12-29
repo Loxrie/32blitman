@@ -231,7 +231,6 @@ void render(uint32_t t) {
     ghost->render();
   }
   
-
   // screen.pen = Pen(255,0,255);
   // screen.line(world_to_screen(ghost.location), world_to_screen(ghost.target));
   
@@ -284,13 +283,29 @@ void update(uint32_t t) {
       }
 
       Point pacman_pt = tile(player.location);
+      bool capman = false;
       for (auto ghost : ghosts) {
         ghost->update(t);
         Point ghost_pt = tile(ghost->location);
         if (player.is_pilled_up() && !ghost->eaten() && pacman_pt == ghost_pt) {
           ghost->eaten(ghostState::EATEN);
           player.score += 100;
+        } else if (!player.is_pilled_up() && !ghost->eaten() && pacman_pt == ghost_pt) {
+          capman = true;
         }
+      }
+
+      if (capman) {
+        // Do death thing.
+        pills_eaten_this_life = 0;
+        player.lives--;
+        player.init();
+        blinky.init();
+        pinky.init();
+        inky.init();
+        clyde.init();
+        timer_level_animate.stop();
+        game_start = false;
       }
     }
   } else if (buttons & Button::A) {

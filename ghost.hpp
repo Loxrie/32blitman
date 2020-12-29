@@ -31,7 +31,7 @@ struct Ghost {
     uint8_t sprite;
 
     Ghost();
-
+  
     uint32_t invertDirection();
     blit::Rect center(blit::Point pos);
     uint32_t direction_to_target(blit::Point target);

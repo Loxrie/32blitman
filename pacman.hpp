@@ -28,7 +28,7 @@ struct Pacman {
     uint32_t lives;
 
     Pacman();
-    
+    void init();
     bool is_pilled_up();
 
     void animate();

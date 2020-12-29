@@ -9,19 +9,25 @@
 struct Blinky : Ghost {
   Blinky();
 
-  void render();
+  void init();
 };
 
 struct Pinky : Ghost {
   Pinky();
+
+  void init();
 };
 
 struct Inky : Ghost {
   Inky();
+
+  void init();
 };
 
 struct Clyde : Ghost {
   Clyde();
+
+  void init();
 };
 
 #endif

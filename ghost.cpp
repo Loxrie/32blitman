@@ -8,8 +8,6 @@ Ghost::Ghost() {
 
   direction = Button::DPAD_LEFT;
   desired_direction = direction;
-
-  // Speed in weirds.
   speed = 0.75f;
   last_update = 0;
   
