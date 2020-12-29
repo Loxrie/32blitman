@@ -41,6 +41,7 @@ struct Ghost {
     void eaten(ghostState s);
     
     void set_move_state(ghostState s);
+    void clear_state(ghostState s);
     void set_state(ghostState s);
     void handle_house();
     void update(uint32_t time);

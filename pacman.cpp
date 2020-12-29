@@ -83,15 +83,19 @@ void Pacman::update(uint32_t time) {
     else 
       speed = 0.79f;
     score += 1;
+    pills_eaten++;
+    pills_eaten_this_life++;
     level_set(tile_pt, entityType::NOTHING);
   }
 
   if (level_get(tile_pt) == entityType::POWER) {
     speed = 0.90f;
     power = 1;
-    power_timer.start();
     score += 10;
+    pills_eaten++;
+    pills_eaten_this_life++;
     level_set(tile_pt, entityType::NOTHING);
+    start_power_timer(10000);
     set_ghost_state(ghostState::FRIGHTENED);
   }
 

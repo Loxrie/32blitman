@@ -20,6 +20,9 @@ extern Pinky pinky;
 extern Inky inky;
 extern Clyde clyde;
 
+extern uint32_t pills_eaten;
+extern uint32_t pills_eaten_this_life;
+
 extern bool operator==(blit::Point a, blit::Point b);
 extern bool operator!=(blit::Point a, blit::Point b);
 

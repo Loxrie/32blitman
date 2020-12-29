@@ -47,7 +47,7 @@ Pinky::Pinky() {
 
   target_offset = 4;
   location = Point((18*8),18*8);
-  state = ghostState::RESTING;
+  state = ghostState::CHASE | ghostState::RESTING | ghostState::LEAVING;
 }
 
 Inky::Inky() {
@@ -68,7 +68,7 @@ Inky::Inky() {
 
   target_offset = 2;
   location = Point((19*8) + 4,18*8);
-  state = ghostState::RESTING;
+  state = ghostState::CHASE | ghostState::RESTING;
 }
 
 Clyde::Clyde() {
@@ -90,5 +90,5 @@ Clyde::Clyde() {
   // Wrong but it'll do for now.
   target_offset = -4;
   location = Point((21*8),18*8);
-  state = ghostState::RESTING;
+  state = ghostState::CHASE | ghostState::RESTING;
 }

@@ -15,17 +15,35 @@ TileMap *level;
 
 Map map(blit::Rect(0, 0, level_height, level_height));
 
+bool bodge_ghost_animation = false;
+
+Timer timer_level_animate;
+Timer power_timer;
+
 Pacman player;
 Blinky blinky;
 Pinky pinky;
 Inky inky;
 Clyde clyde;
 
+uint32_t pills_eaten;
+uint32_t pills_eaten_this_life;
+
 std::vector<Ghost *> ghosts = {&blinky, &pinky, &inky, &clyde};
 // std::vector<Ghost *> ghosts = {&blinky};
 
 void power_timer_callback(Timer &timer) {
+  printf("Power pill expired.\n");
   player.power = 0;
+  for (auto ghost: ghosts) {
+    ghost->clear_state(ghostState::FRIGHTENED);
+  }
+}
+
+void start_power_timer(uint32_t ms) {
+  power_timer.duration = ms;
+  power_timer.loops = 1;
+  power_timer.start();
 }
 
 void set_ghost_state(ghostState s) {
@@ -33,10 +51,6 @@ void set_ghost_state(ghostState s) {
     ghost->set_state(s);
   }
 }
-
-bool bodge_ghost_animation = false;
-Timer timer_level_animate;
-Timer power_timer;
 
 bool operator==(Point a, Point b) {
   return (a.x == b.x && a.y == b.y);
@@ -81,9 +95,12 @@ bool game_start;
 // setup your game here
 //
 void init() {
+  srand(time(NULL));
   game_start = false;
   set_screen_mode(ScreenMode::hires);
 
+  power_timer.init(power_timer_callback, 1000, 1);
+  
   timer_level_animate.init(animate_level, 50, -1);
 
   // Load sprite sheet.
@@ -252,12 +269,19 @@ void render(uint32_t t) {
 void update(uint32_t t) {
   static uint32_t last_animation = t;
   if (game_start) {
-    srand(time(NULL));
     if (buttons & Button::A) {
       game_start = false;
       timer_level_animate.stop();
     } else {
       player.update(t);
+
+      if (inky.state & ghostState::RESTING && pills_eaten_this_life >= 30) {
+        inky.set_state(ghostState::LEAVING);
+      }
+
+      if (clyde.state & ghostState::RESTING && pills_eaten_this_life >= 60) {
+        clyde.set_state(ghostState::LEAVING);
+      }
 
       Point pacman_pt = tile(player.location);
       for (auto ghost : ghosts) {

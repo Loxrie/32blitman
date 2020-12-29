@@ -198,6 +198,10 @@ void Ghost::set_state(ghostState s) {
   state |= s;
 }
 
+void Ghost::clear_state(ghostState s) {
+  state &= ~ s;
+}
+
 void Ghost::handle_house() {
   if (state & ghostState::EATEN && location == ghost_house_door) {
     direction = DPAD_DOWN;
