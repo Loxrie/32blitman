@@ -134,6 +134,17 @@ void Ghost::update(uint32_t time) {
     speed = 0.4f;
   }
 
+  // TODO We are in a PORTAL.
+  if (flags & entityType::PORTAL) {
+    if (direction == Button::DPAD_LEFT && tile_pt == Point(4,18)) {
+      location = Vec2(35 * 8, 18 * 8);
+    } else if (direction == Button::DPAD_RIGHT && tile_pt == Point(35, 18)) {
+      location = Vec2(4 * 8, 18 * 8);
+    }
+    tile_pt = tile(location);
+    flags = map.get_flags(tile_pt);
+  }
+
   if (location.x % 8 > 0 || location.y % 8 > 0) {
     printf("Ghost::update liminal, moving.\n");
     // Only update every "speed" fraction of frames. Assume 10ms update.
@@ -157,15 +168,6 @@ void Ghost::update(uint32_t time) {
           break;
       }
     }
-    return;
-  }
-
-
-  // TODO We are in a PORTAL.
-  if (flags & entityType::PORTAL) {
-    printf("Ghost::update portal %d\n", state);
-    state |= ghostState::GH_PORTAL;
-    printf("Ghost::update portal %d\n", state);
     return;
   }
 

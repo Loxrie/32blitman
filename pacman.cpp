@@ -15,6 +15,9 @@ Pacman::Pacman() {
   desired_movement = movement;
   desired_direction = direction;
 
+  speed = 0.8f;
+  power_timer = 0;
+
   sprite = 0;
   lives = 3;
   score = 0;
@@ -64,20 +67,34 @@ void Pacman::anim_player() {
   }
 }
 
-// std::function<void(Point)> Player::collision_detection = [this](Point tile_pt) -> void {
-//   if(this->moving_to == entityType::NOTHING && map.has_flag(tile_pt, entityType::WALL)) {
-//     this->moving_to = entityType::WALL;
-//   }
-// };
-
 void Pacman::update(uint32_t time) {
+  static uint32_t last_update = 0;
   moving_to = entityType::NOTHING;
   Rect bounds_lr;
-  
+
   Point tile_pt = tile(location);
   uint32_t flags = map.get_flags(tile_pt);
+
   if (flags & entityType::PILL) {
+    if (power_timer <= 0)
+      speed = 0.71f;
     map.layers["pills"].tiles[tile_pt.y * level_width + tile_pt.x] = 0;
+  }
+
+  if (flags & entityType::POWER) {
+    speed = 0.90f;
+    power_timer = 30 * 1000;
+    map.layers["pills"].tiles[tile_pt.y * level_width + tile_pt.x] = 0;
+  }
+
+
+  // TODO We are in a PORTAL.
+  if (flags & entityType::PORTAL) {
+    if (direction == Button::DPAD_LEFT && tile_pt == Point(4,18)) {
+      location = Vec2(35 * 8, 18 * 8);
+    } else if (direction == Button::DPAD_RIGHT && tile_pt == Point(35, 18)) {
+      location = Vec2(4 * 8, 18 * 8);
+    }
   }
 
   if (buttons.state > 0) {
@@ -115,14 +132,14 @@ void Pacman::update(uint32_t time) {
     direction = desired_direction;
   }
 
-  if (moving_to == entityType::NOTHING) {
+  uint32_t time_passed = time - last_update;
+  if (time_passed > 10 / speed && moving_to == entityType::NOTHING) {
+    printf("Pacman::update last_update %d, speed %f\n", last_update, speed);
+    last_update = time;
     location += movement;
+    // Should we expire power pill.
+    if (power_timer > 0) {
+      power_timer -= time_passed;
+    }
   }
-
-  // this->debug_bounds = { 
-  //   Point(bounds_lr.x, bounds_lr.y), 
-  //   Point(bounds_lr.x + bounds_lr.w, bounds_lr.y), 
-  //   Point(bounds_lr.x + bounds_lr.w, bounds_lr.y + bounds_lr.h),
-  //   Point(bounds_lr.x, bounds_lr.y + bounds_lr.h)
-  // };
 }

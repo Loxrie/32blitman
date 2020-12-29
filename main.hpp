@@ -12,6 +12,8 @@ extern Ghost ghost;
 
 extern blit::Map map;
 
+extern bool operator==(blit::Point a, blit::Point b);
+
 blit::Rect footprint(blit::Point pos, blit::Size size);
 blit::Point world_to_screen(blit::Point point);
 blit::Point screen_to_world(blit::Point point);

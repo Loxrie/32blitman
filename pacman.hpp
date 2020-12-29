@@ -11,6 +11,9 @@ struct Pacman {
     blit::Vec2 movement;
     uint32_t direction;
 
+    float speed;
+    uint32_t power_timer;
+    
     blit::Vec2 desired_movement;
     uint32_t desired_direction;
     entityType moving_to;

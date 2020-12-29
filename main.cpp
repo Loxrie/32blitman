@@ -39,6 +39,10 @@ Rect pacmanAnims[16] = {
   Rect(6,14,2,2),
 };
 
+bool operator==(Point a, Point b) {
+  return (a.x == b.x && a.y == b.y);
+}
+
 float deg2rad(float a) {
     return a * (pi / 180.0f);
 }
@@ -182,8 +186,8 @@ void render(uint32_t time) {
 
   ghost.render();
 
-  screen.pen = Pen(255,0,255);
-  screen.line(world_to_screen(ghost.location), world_to_screen(ghost.target));
+  // screen.pen = Pen(255,0,255);
+  // screen.line(world_to_screen(ghost.location), world_to_screen(ghost.target));
   
   // if (debug_logging) {
   //   screen.pen = Pen(255,0,255);
