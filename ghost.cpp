@@ -130,7 +130,7 @@ void Ghost::update(uint32_t time) {
     vector_multiplier = 0.5f;
   }
 
-  if (location.x % 16 > 0 || location.y % 16 > 0) {
+  if (location.x % 8 > 0 || location.y % 8 > 0) {
     printf("Ghost::update liminal, moving.\n");
     switch (direction) {
       case Button::DPAD_LEFT:
