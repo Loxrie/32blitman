@@ -3,27 +3,66 @@
 
 using namespace blit;
 
+Rect ghostAnims[8] = {
+  // Left
+  Rect(0,4,2,2),
+  Rect(2,4,2,2),
+  // Right
+  Rect(4,14,2,2),
+  Rect(6,12,2,2),
+  // Up
+  Rect(8,14,2,2),
+  Rect(10,14,2,2),
+  // Down
+  Rect(12,14,2,2),
+  Rect(14,14,2,2)
+};
+
+
 Ghost::Ghost() {
-  size = Size(14, 14);
-  location = Point((19*8)+4,15*8);
+  size = Size(16, 16);
+  location = Point((19*8) + 4,15*8);
   target = Vec2(player.location);
-  decision_made = false;
-  direction = 0;
-  movement = Vec2(-1,0);
-  desired_movement = movement;
+
+  direction = Button::DPAD_LEFT;
+  desired_direction = direction;
+  
+  state = ghostState::CHASE;
 
   sprite = 0;
 
   collision_detection = [this](Point tile_pt) -> void {
-    printf("Ghost::ghost collision_detection checking %ld:%ld.\n", tile_pt.x, tile_pt.y);
     if(map.has_flag(tile_pt, entityType::WALL)) {
-        printf("Ghost::ghost collision_detection tile number %d has flags %d.\n", map.layers["background"].tile_at(tile_pt), map.get_flags(tile_pt));
+        printf("Ghost::ghost collision detected %d:%d\n", tile_pt.x, tile_pt.y);
         this->moving_to = entityType::WALL;
     }
   };
 }
 
-Vec2 Ghost::vector_to_target() {
+uint32_t Ghost::invertDirection() {
+  uint32_t i_direction = 0;
+  switch(direction) {
+    case Button::DPAD_LEFT:
+      i_direction = Button::DPAD_RIGHT;
+      break;
+    case Button::DPAD_RIGHT:
+      i_direction = Button::DPAD_LEFT;
+      break;
+    case Button::DPAD_UP:
+      i_direction = Button::DPAD_DOWN;
+      break;
+    case Button::DPAD_DOWN:
+      i_direction = Button::DPAD_UP;
+      break;
+  }
+  return i_direction;
+}
+
+Rect Ghost::center(Point pos) {
+  return Rect(pos.x + (size.w/4), pos.y + (size.h/4), size.h/2, size.w/2);
+}
+
+uint32_t Ghost::direction_to_target() {
   /**
    * https://gameinternals.com/understanding-pac-man-ghost-behavior
    *
@@ -38,111 +77,183 @@ Vec2 Ghost::vector_to_target() {
   Point decision_tile = tile(location);
   Point target_tile = tile(target);
   
-  Vec2 inverted_vector = Vec2(-movement.x, -movement.y);
+  uint32_t inverted_direction = invertDirection();
   uint32_t index = decision_tile.y * level_width + decision_tile.x;
   auto search = mapOfJunctions.find(index);
   if (search == mapOfJunctions.end()) {
-    printf("Ghost::vector_to_target freezing ghost, no mapping for %ld:%ld index %ld.\n", decision_tile.x, decision_tile.y, index);
-    return Vec2(0,0);
+    printf("Ghost::direction_to_target freezing ghost, no mapping.\n");
+    return 0;
   }
 
   float min_distance = 600.f;
-  Vec2 min_vector;
-  for (Vec2 vector : search->second) {
-    if (vector.x == inverted_vector.x && vector.y == inverted_vector.y) {
-      printf("Ghost::vector_to_target Skipping %.0f:%0.f.\n", (double)vector.x, (double)vector.y);
+  uint32_t min_direction;
+  for (uint32_t exit : search->second) {
+    if (exit == inverted_direction) {
       continue;
     }
 
+    Vec2 vector;
+    switch (exit) {
+      case Button::DPAD_LEFT:
+        vector = Vec2(-2,0);
+        break;
+      case Button::DPAD_RIGHT:
+        vector = Vec2(2,0);
+        break;
+      case Button::DPAD_UP:
+        vector = Vec2(0,-2);
+        break;
+      case Button::DPAD_DOWN:
+        vector = Vec2(0,2);
+        break;
+    }
     Point source_tile = Point(decision_tile.x + vector.x, decision_tile.y + vector.y);
+    // printf("Ghost::direction_to_target %d:%d\n", source_tile.x, source_tile.y);
     float distance = fabs(Vec2(target_tile.x - source_tile.x, target_tile.y - source_tile.y).length());
-    printf("Ghost::vector_to_target checking point %ld:%ld distance %3.3f min is %3.3f.\n", source_tile.x, source_tile.y, (double)distance, (double)min_distance);    
     if (distance < min_distance) {
       min_distance = distance;
-      min_vector = vector;
+      min_direction = exit;
     }
   }
 
-  return min_vector;
+  return min_direction;
 }
   
 void Ghost::update(uint32_t time) {
-  // Only update every 8 pixels.
-  if (location.x % 8 != 0 || location.y % 8 != 0) {
-    printf("Inbetween tiles, floating.\n");
-    location += movement;
+  printf("Ghost::update time %d\n", time);
+  Point tile_pt = tile(location);
+  uint32_t flags = map.get_flags(tile_pt);
+  float vector_multiplier = 1.0f;
+
+  // Adjust speed for being in WARP zone.
+  if (flags & entityType::WARP) {
+    vector_multiplier = 0.5f;
+  }
+
+  if (location.x % 16 > 0 || location.y % 16 > 0) {
+    printf("Ghost::update liminal, moving.\n");
+    switch (direction) {
+      case Button::DPAD_LEFT:
+        location.x -= (1.0f * vector_multiplier);
+        break;
+      case Button::DPAD_RIGHT:
+        location.x += (1.0f * vector_multiplier);
+        break;
+      case Button::DPAD_UP:
+        location.y -= (1.0f * vector_multiplier);
+        break;
+      case Button::DPAD_DOWN:
+        location.y += (1.0f * vector_multiplier);
+        break;
+    }
     return;
   }
 
+
+  // TODO We are in a PORTAL.
+  if (flags & entityType::PORTAL) {
+    printf("Ghost::update portal %d\n", state);
+    state |= ghostState::GH_PORTAL;
+    printf("Ghost::update portal %d\n", state);
+    return;
+  }
+
+  // Setup
   moving_to = entityType::NOTHING;
   Rect bounds_lr;
   target = player.location;
-  float vector_divisor = 1.0f;
 
-  Point tile_pt = tile(location);
-  uint32_t flags = map.get_flags(tile_pt);
-  print_flags(flags);
-  if (flags & entityType::WARP) {
-    vector_divisor = 2.0f;
+  // If we're at a junction point choose a new direction.
+  if (flags & entityType::JUNCTION) {
+    desired_direction = direction_to_target();
   }
 
-  if (!decision_made && flags & entityType::JUNCTION) {
-    decision_made = true;
-    desired_movement = vector_to_target();
-    printf("Ghost::update decision move to %.0f:%0.f\n", (double)desired_movement.x, (double)desired_movement.y);
-  }
-
-  // See if new input direction is valid.
-  if (decision_made) {
-    bounds_lr = footprint(location + (desired_movement * 8), size);
+  // If our desired path doesn't match our current one try to change.
+  if (desired_direction != direction) {
+    auto dirSearch = dirToVector.find(desired_direction);
+    if (dirSearch == dirToVector.end()) {
+      printf("Freezing ghost, no dir mapping.\n");
+      return;
+    }
+    Vec2 desired_movement = dirSearch->second;
+    bounds_lr = center(location + desired_movement);
     map.tiles_in_rect(bounds_lr, collision_detection);
     if (moving_to == entityType::NOTHING) {
-      movement = desired_movement;
-      printf("Ghost::update desired move to %0.f:%0.f\n", (double)movement.x, (double)movement.y);
-      decision_made = false;
-      location += desired_movement/vector_divisor;
+      direction = desired_direction;
+    }
+  } else {
+    // Otherwise try carrying on.
+    moving_to = entityType::NOTHING;
+    auto dirSearch = dirToVector.find(direction);
+    if (dirSearch == dirToVector.end()) {
+      printf("Freezing ghost, no dir mapping.\n");
       return;
-    } 
+    }
+    Vec2 movement = dirSearch->second;
+    bounds_lr = center(location + movement);
+    printf("Can we move into %d:%d %d:%d.\n", bounds_lr.x, bounds_lr.y, bounds_lr.w, bounds_lr.h);
+    map.tiles_in_rect(bounds_lr, collision_detection);
   }
-  
-  // Use pre-existing movement.
-  moving_to = entityType::NOTHING;
-  printf("Ghost::update Calculating bounds with %ld:%ld\n", location.x, location.y);
-  bounds_lr = footprint(location + (movement * 8), size);
-  map.tiles_in_rect(bounds_lr, collision_detection);
-  printf("Ghost::update tiles in rect %ld:%ld %ld:%ld found %d.\n", bounds_lr.x/8, bounds_lr.y/8, bounds_lr.w, bounds_lr.h, moving_to);
-  if (moving_to == entityType::NOTHING) {
-    printf("Ghost::update move to %0.f:%0.f\n", (double)movement.x, (double)movement.y);
-    location += movement/vector_divisor;
-    return;
-  } 
   
   // Still can't move, try turning a corner.
   if (moving_to == entityType::WALL && !(flags & entityType::JUNCTION)) {
-    Vec2 inverted_vector = Vec2(-movement.x, -movement.y);
-    printf("Movement is %.0f:%0.f, so we don't want %.0f:%.0f as possible direction.\n", (double)movement.x, (double)movement.y, (double)inverted_vector.x, (double)inverted_vector.y);
+    uint32_t inverted_direction = invertDirection();
     Point stuck_at = tile(location);
     uint32_t index = stuck_at.y * level_width + stuck_at.x;
     auto search = mapOfJunctions.find(index);
     if (search == mapOfJunctions.end()) {
-      printf("No mapping for %ld:%ld index %ld.\n", stuck_at.x, stuck_at.y, index);
+      printf("No mapping in map of junctions.\n");
       return;
     }
 
-    for (Vec2 vector : search->second) {
-      if (vector.x == inverted_vector.x && vector.y == inverted_vector.y) {
-        printf("Skipping escape route from %ld:%ld with vector %.0f:%.0f.\n", stuck_at.x, stuck_at.y, (double)vector.x, (double)vector.y);
+    for (uint32_t corner : search->second) {
+      if (corner == inverted_direction) {
+        printf("Ghost::update corner refusing to u-turn.\n");
         continue;
       }
-      printf("Checking escape route from %ld:%ld with vector %.0f:%.0f.\n", stuck_at.x, stuck_at.y, (double)vector.x, (double)vector.y);
+      auto dirSearch = dirToVector.find(corner);
+      if (dirSearch == dirToVector.end()) {
+        return;
+      }
+      Vec2 vector = dirSearch->second;
+
       moving_to = entityType::NOTHING;
-      map.tiles_in_rect(footprint(location + (vector * 8), size), collision_detection);
+
+      map.tiles_in_rect(center(location + vector), collision_detection);
       if (moving_to == entityType::NOTHING) {
-        // This slows down ghost on corner?
-        desired_movement = vector;
-        decision_made = true;
+        desired_direction = corner;
         break;
       }
     }
+    // We haven't reached the corner yet, we've just made a choice.
+    return;
   }
+
+  // Set Movement for current direction.
+  switch (direction) {
+    case Button::DPAD_LEFT:
+      location.x -= (1.0f * vector_multiplier);
+      break;
+    case Button::DPAD_RIGHT:
+      printf("Ghost::update pre  loc x %d\n", location.x);
+      location.x += (1.0f * vector_multiplier);
+      printf("Ghost::update post loc x %d\n", location.x);
+      break;
+    case Button::DPAD_UP:
+      location.y -= (1.0f * vector_multiplier);
+      break;
+    case Button::DPAD_DOWN:
+      location.y += (1.0f * vector_multiplier);
+      break;
+  }
+}
+
+void Ghost::render() {
+  if (state & ghostState::GH_PORTAL) {
+    printf("Ghost::render in portal.\n");
+    return;
+  }
+    
+  printf("Ghost::render %d:%d\n", location.x, location.y);
+  screen.sprite(ghostAnims[sprite], world_to_screen(location));
 }

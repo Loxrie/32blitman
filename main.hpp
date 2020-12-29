@@ -18,6 +18,5 @@ blit::Point screen_to_world(blit::Point point);
 blit::Point tile(blit::Point point);
 void draw_layer(blit::MapLayer &layer);
 void draw_layer(blit::MapLayer &layer, int32_t offset);
-void print_flags(uint8_t flags);
 
 #endif

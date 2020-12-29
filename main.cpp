@@ -39,21 +39,6 @@ Rect pacmanAnims[16] = {
   Rect(6,14,2,2),
 };
 
-Rect ghostAnims[8] = {
-  // Left
-  Rect(0,4,2,2),
-  Rect(2,4,2,2),
-  // Right
-  Rect(4,14,2,2),
-  Rect(6,12,2,2),
-  // Up
-  Rect(8,14,2,2),
-  Rect(10,14,2,2),
-  // Down
-  Rect(12,14,2,2),
-  Rect(14,14,2,2)
-};
-
 float deg2rad(float a) {
     return a * (pi / 180.0f);
 }
@@ -82,11 +67,10 @@ void init() {
   // Load level data in.
   level = new TileMap((uint8_t *)level_data, nullptr, Size(level_width, level_height), screen.sprites);
   for(auto x = 0; x < level_width * level_height; x++){
-    level_data[x] = asset_assets_level2_tmx[x];
+    level_data[x] = asset_assets_level1_tmx[x];
   }
-  std::vector<uint8_t> mazeVector(asset_assets_level2_tmx_length);
-  mazeVector.assign(&asset_assets_level2_tmx[0], &asset_assets_level2_tmx[asset_assets_level2_tmx_length]);
-  // printf("Length of level and vector %ld / %lu\n", asset_assets_level2_tmx_length, mazeVector.size());
+  std::vector<uint8_t> mazeVector(asset_assets_level1_tmx_length);
+  mazeVector.assign(&asset_assets_level1_tmx[0], &asset_assets_level1_tmx[asset_assets_level1_tmx_length]);
 
   map.add_layer("background", mazeVector);
   // Set walls.
@@ -98,6 +82,7 @@ void init() {
   }, entityType::WALL);
   map.layers["background"].add_flags(62, entityType::JUNCTION);
   map.layers["background"].add_flags(63, entityType::WARP);
+  map.layers["background"].add_flags(254, entityType::PORTAL);
   map.layers["background"].add_flags({0,62,63}, entityType::NOTHING);
   // Set pills.
   std::vector<uint8_t> pillVector(asset_pills_length);
@@ -121,23 +106,6 @@ void update_camera() {
 
 int32_t clamp(int32_t v, int32_t min, int32_t max) {
   return v > min ? (v < max ? v : max) : min;
-}
-
-  // NOTHING = 0,
-  // WALL = 1,
-  // PILL = 2,
-  // POWER = 4,
-  // JUNCTION = 16, // 62 Normal junction. For Ghosts.
-  // WARP = 32
-
-void print_flags(uint8_t flags) {
-  bool wall = flags & entityType::WALL;
-  bool pill = flags & entityType::PILL;
-  bool power = flags & entityType::POWER;
-  bool junc = flags & entityType::JUNCTION;
-  bool warp = flags & entityType::WARP;
-  printf("Flags : W P PP J W\n");
-  printf("Result: %ld %ld %ld  %ld %ld\n", wall, pill, power, junc, warp);
 }
 
 /** 
@@ -181,7 +149,6 @@ void draw_layer(MapLayer &layer, int32_t offset) {
   Point tlt = tile(tl);
   Point brt = tile(br);
 
-  // printf("TL Tile %ld:%ld\tBR Tile %ld:%ld\n",tlt.x,tlt.y,brt.x,brt.y);
   for (uint8_t y = tlt.y; y <= brt.y; y++) {
     for (uint8_t x = tlt.x; x <= brt.x; x++) {
       Point pt = world_to_screen(Point(x * 8 + offset, y * 8 + offset));
@@ -213,7 +180,7 @@ void render(uint32_t time) {
 
   screen.sprite(pacmanAnims[player.sprite], world_to_screen(player.location));
 
-  screen.sprite(ghostAnims[ghost.sprite], world_to_screen(ghost.location));
+  ghost.render();
 
   screen.pen = Pen(255,0,255);
   screen.line(world_to_screen(ghost.location), world_to_screen(ghost.target));
