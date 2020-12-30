@@ -112,7 +112,7 @@ uint32_t Ghost::direction_to_target(Point target) {
   }
 
   float min_distance = 600.f;
-  uint32_t min_direction;
+  uint32_t min_direction = 0;
   for (uint32_t exit : search->second) {
     if (exit == inverted_direction) {
       continue;

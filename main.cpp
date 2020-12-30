@@ -1,3 +1,4 @@
+#include <time.h>
 #include "main.hpp"
 #include "assets.hpp"
 #include "pacman.hpp"
