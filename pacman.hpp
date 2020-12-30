@@ -29,6 +29,7 @@ struct Pacman {
 
     Pacman();
     void init();
+    void new_game();
     bool is_pilled_up();
 
     void animate();

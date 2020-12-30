@@ -1,7 +1,6 @@
 
 NEXT
 
-- No game over.
 - No level finishing.
 
 TODO

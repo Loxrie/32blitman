@@ -26,7 +26,7 @@ Pacman::Pacman() {
   power = 0;
 
   sprite = 0;
-  lives = 3;
+  lives = 4;
   score = 0;
 
   collision_detection = [this](Point tile_pt) -> void {
@@ -40,8 +40,17 @@ void Pacman::init() {
   location = Vec2((19*8)+4,27*8);
   movement = Vec2(0,0);
   direction = 0;
+  power = 0;
+  sprite = 0;
   desired_movement = movement;
   desired_direction = direction;
+}
+
+void Pacman::new_game() {
+  speed = 0.8f;
+  score = 0;
+  lives = 4;
+  init();
 }
 
 bool Pacman::is_pilled_up() {

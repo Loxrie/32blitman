@@ -87,6 +87,8 @@ float deg2rad(float a) {
 }
 
 bool game_start;
+uint32_t high_score;
+uint32_t go_score;
 
 ///////////////////////////////////////////////////////////////////////////
 //
@@ -210,6 +212,27 @@ void draw_layer(uint8_t *layer, int32_t offset) {
   }
 }
 
+void reset_game() {
+  player.init();
+  blinky.init();
+  pinky.init();
+  inky.init();
+  clyde.init();
+  timer_level_animate.stop();
+  pills_eaten_this_life = 0;
+  game_start = false;
+}
+
+void game_over() {
+  pills_eaten = 0;
+  pills_eaten_this_life = 0;
+  // Restore pills.
+  for(auto x = 0; x < level_width * level_height; x++){
+    pill_data[x] = asset_pills[x];
+  }
+  player.new_game();
+}
+
 ///////////////////////////////////////////////////////////////////////////
 //
 // render(time)
@@ -254,6 +277,14 @@ void render(uint32_t t) {
   screen.rectangle(Rect(0, 0, screen_width, 10));
   screen.pen = Pen(255, 255, 255);
   screen.text("    " + std::to_string(player.score), minimal_font, Point(2, 2));
+
+  if (player.lives == 0) {
+    screen.pen = Pen(0, 0, 1);
+    screen.rectangle(Rect(0, (screen_height/2) - 20, screen_width, 40));
+    screen.pen = Pen(255, 255, 255);
+    screen.text(" GAME OVER ", fat_font, Point(screen_width/2 - 20, screen_height/2 - 15));
+    screen.text(" Your score " + std::to_string(go_score), minimal_font, Point(screen_width/2 - 20, screen_height/2 + 10));
+  }
   
   screen.pen = Pen(0, 0, 0);
 }
@@ -267,7 +298,7 @@ void render(uint32_t t) {
 //
 void update(uint32_t t) {
   static uint32_t last_animation = t;
-  if (game_start) {
+  if (game_start && player.lives > 0) {
     if (buttons & Button::A) {
       game_start = false;
       timer_level_animate.stop();
@@ -296,19 +327,18 @@ void update(uint32_t t) {
       }
 
       if (capman) {
-        // Do death thing.
-        pills_eaten_this_life = 0;
-        player.lives--;
-        player.init();
-        blinky.init();
-        pinky.init();
-        inky.init();
-        clyde.init();
-        timer_level_animate.stop();
-        game_start = false;
+        if (--player.lives == 0) {
+          go_score = player.score;
+          high_score = (player.score > high_score) ? player.score : high_score;
+        }
+        printf("Pacman lives %d\n", player.lives);
+        reset_game();
       }
     }
   } else if (buttons & Button::A) {
+    if (player.lives == 0) {
+      game_over();
+    }
     game_start = true;
     timer_level_animate.start();
   }
