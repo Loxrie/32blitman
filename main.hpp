@@ -38,4 +38,8 @@ blit::Point tile(blit::Point point);
 void draw_layer(uint8_t *layer);
 void draw_layer(uint8_t *layer, int32_t offset);
 
+void next_level();
+void reset_level();
+void game_over();
+
 #endif

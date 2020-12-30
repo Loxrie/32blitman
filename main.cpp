@@ -212,7 +212,15 @@ void draw_layer(uint8_t *layer, int32_t offset) {
   }
 }
 
-void reset_game() {
+void next_level() {
+  for(auto x = 0; x < level_width * level_height; x++){
+    pill_data[x] = asset_pills[x];
+  }
+  pills_eaten = 0;
+  reset_level();
+}
+
+void reset_level() {
   player.init();
   blinky.init();
   pinky.init();
@@ -253,24 +261,6 @@ void render(uint32_t t) {
   for (auto ghost : ghosts) {
     ghost->render();
   }
-  
-  // screen.pen = Pen(255,0,255);
-  // screen.line(world_to_screen(ghost.location), world_to_screen(ghost.target));
-  
-  // if (debug_logging) {
-  //   screen.pen = Pen(255,0,255);
-  //   screen.pixel(player.location);
-  //   Point prev_point = Point(-1,-1);
-  //   for(Point a_point: player.debug_bounds) {
-  //     if (prev_point.x != -1) {
-  //       screen.line(prev_point, a_point);
-  //       prev_point = a_point;
-  //     } else {
-  //       prev_point = a_point;
-  //     }
-  //   }
-  //   screen.line(player.debug_bounds[0], player.debug_bounds[player.debug_bounds.size()-1]);
-  // }
 
   // Draw the header bar
   screen.pen = Pen(0, 0, 1);
@@ -278,6 +268,7 @@ void render(uint32_t t) {
   screen.pen = Pen(255, 255, 255);
   screen.text("    " + std::to_string(player.score), minimal_font, Point(2, 2));
 
+  // Draw game over screen.
   if (player.lives == 0) {
     screen.pen = Pen(0, 0, 1);
     screen.rectangle(Rect(0, (screen_height/2) - 20, screen_width, 40));
@@ -331,8 +322,9 @@ void update(uint32_t t) {
           go_score = player.score;
           high_score = (player.score > high_score) ? player.score : high_score;
         }
-        printf("Pacman lives %d\n", player.lives);
-        reset_game();
+        reset_level();
+      } else if (pills_eaten == pills_per_level) {
+        next_level();
       }
     }
   } else if (buttons & Button::A) {
@@ -342,6 +334,5 @@ void update(uint32_t t) {
     game_start = true;
     timer_level_animate.start();
   }
-
   update_camera();
 }

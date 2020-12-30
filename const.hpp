@@ -7,7 +7,7 @@ constexpr uint16_t screen_height = 240;
 constexpr uint16_t level_width = 64;
 constexpr uint16_t level_height = 64;
 
-const bool debug_logging = false;
+const uint32_t pills_per_level = 244;
 
 const blit::Point ghost_house_door = blit::Point((19 * 8) + 4, 15 * 8);
 const blit::Point ghost_house = blit::Point((19 * 8) + 4, 18 * 8);

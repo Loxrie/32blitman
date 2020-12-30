@@ -99,7 +99,7 @@ void Pacman::update(uint32_t time) {
       speed = 0.71f;
     else 
       speed = 0.79f;
-    score += 1;
+    score += 10;
     pills_eaten++;
     pills_eaten_this_life++;
     level_set(tile_pt, entityType::NOTHING);
@@ -108,7 +108,7 @@ void Pacman::update(uint32_t time) {
   if (level_get(tile_pt) == entityType::POWER) {
     speed = 0.90f;
     power = 1;
-    score += 10;
+    score += 50;
     pills_eaten++;
     pills_eaten_this_life++;
     level_set(tile_pt, entityType::NOTHING);
