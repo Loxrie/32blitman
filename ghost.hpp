@@ -21,6 +21,8 @@ struct Ghost {
     uint32_t direction;
     uint32_t desired_direction;
 
+    blit::Point scatter_target;
+
     uint32_t last_update;
     float speed;
 
@@ -29,6 +31,8 @@ struct Ghost {
     entityType moving_to;
 
     uint8_t sprite;
+
+    blit::Timer move_cycle_timer;
 
     Ghost();
   

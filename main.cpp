@@ -21,21 +21,20 @@ bool bodge_ghost_animation = false;
 Timer timer_level_animate;
 Timer power_timer;
 
-Pacman player;
-Blinky blinky;
-Pinky pinky;
-Inky inky;
-Clyde clyde;
+Pacman *player;
+Blinky *blinky;
+Pinky *pinky;
+Inky *inky;
+Clyde *clyde;
 
 uint32_t pills_eaten;
 uint32_t pills_eaten_this_life;
 
-std::vector<Ghost *> ghosts = {&blinky, &pinky, &inky, &clyde};
-// std::vector<Ghost *> ghosts = {&blinky};
+std::vector<Ghost *> ghosts;
 
 void power_timer_callback(Timer &timer) {
   printf("Power pill expired.\n");
-  player.power = 0;
+  player->power = 0;
   for (auto ghost: ghosts) {
     ghost->clear_state(ghostState::FRIGHTENED);
   }
@@ -62,7 +61,7 @@ bool operator!=(Point a, Point b) {
 }
 
 void animate_level(Timer &timer) {
-  player.animate();
+  player->animate();
   if (bodge_ghost_animation) {
     for (auto ghost : ghosts) {
       ghost->animate();
@@ -105,6 +104,15 @@ void init() {
   power_timer.init(power_timer_callback, 1000, 1);
   
   timer_level_animate.init(animate_level, 50, -1);
+
+  // Setup pacman/ghosts here so timers don't crash.
+  player = new Pacman();
+  blinky = new Blinky();
+  pinky = new Pinky();
+  inky = new Inky();
+  clyde = new Clyde();
+
+  ghosts.assign({blinky, pinky, inky, clyde});
 
   // Load sprite sheet.
   screen.sprites = SpriteSheet::load(asset_level);
@@ -150,7 +158,7 @@ std::function<Mat3(uint8_t)> level_line_interrupt_callback = [](uint8_t y) -> Ma
 
 void update_camera() {
   camera = Mat3::identity();
-  camera *= Mat3::translation(Vec2(player.location.x, player.location.y)); // offset to middle of world
+  camera *= Mat3::translation(Vec2(player->location.x, player->location.y)); // offset to middle of world
   camera *= Mat3::translation(Vec2(-screen_width / 2, -screen_height / 2)); // transform to centre of framebuffer
 }
 
@@ -222,11 +230,11 @@ void next_level() {
 }
 
 void reset_level() {
-  player.init();
-  blinky.init();
-  pinky.init();
-  inky.init();
-  clyde.init();
+  player->init();
+  blinky->init();
+  pinky->init();
+  inky->init();
+  clyde->init();
   timer_level_animate.stop();
   pills_eaten_this_life = 0;
   game_start = false;
@@ -239,7 +247,7 @@ void game_over() {
   for(auto x = 0; x < level_width * level_height; x++){
     pill_data[x] = asset_pills[x];
   }
-  player.new_game();
+  player->new_game();
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -257,7 +265,7 @@ void render(uint32_t t) {
   
   draw_layer(pill_data, 4);
 
-  player.render();
+  player->render();
 
   for (auto ghost : ghosts) {
     ghost->render();
@@ -267,10 +275,10 @@ void render(uint32_t t) {
   screen.pen = Pen(0, 0, 1);
   screen.rectangle(Rect(0, 0, screen_width, 10));
   screen.pen = Pen(255, 255, 255);
-  screen.text("    " + std::to_string(player.score), minimal_font, Point(2, 2));
+  screen.text("    " + std::to_string(player->score), minimal_font, Point(2, 2));
 
   // Draw game over screen.
-  if (player.lives == 0) {
+  if (player->lives == 0) {
     screen.pen = Pen(0, 0, 1);
     screen.rectangle(Rect(0, (screen_height/2) - 20, screen_width, 40));
     screen.pen = Pen(255, 255, 255);
@@ -290,38 +298,38 @@ void render(uint32_t t) {
 //
 void update(uint32_t t) {
   static uint32_t last_animation = t;
-  if (game_start && player.lives > 0) {
+  if (game_start && player->lives > 0) {
     if (buttons & Button::A) {
       game_start = false;
       timer_level_animate.stop();
     } else {
-      player.update(t);
+      player->update(t);
 
-      if (inky.state & ghostState::RESTING && pills_eaten_this_life >= 30) {
-        inky.set_state(ghostState::LEAVING);
+      if (inky->state & ghostState::RESTING && pills_eaten_this_life >= 30) {
+        inky->set_state(ghostState::LEAVING);
       }
 
-      if (clyde.state & ghostState::RESTING && pills_eaten_this_life >= 60) {
-        clyde.set_state(ghostState::LEAVING);
+      if (clyde->state & ghostState::RESTING && pills_eaten_this_life >= 60) {
+        clyde->set_state(ghostState::LEAVING);
       }
 
-      Point pacman_pt = tile(player.location);
+      Point pacman_pt = tile(player->location);
       bool capman = false;
       for (auto ghost : ghosts) {
         ghost->update(t);
         Point ghost_pt = tile(ghost->location);
-        if (player.is_pilled_up() && !ghost->eaten() && pacman_pt == ghost_pt) {
+        if (player->is_pilled_up() && !ghost->eaten() && pacman_pt == ghost_pt) {
           ghost->eaten(ghostState::EATEN);
-          player.score += 100;
-        } else if (!player.is_pilled_up() && !ghost->eaten() && pacman_pt == ghost_pt) {
+          player->score += 100;
+        } else if (!player->is_pilled_up() && !ghost->eaten() && pacman_pt == ghost_pt) {
           capman = true;
         }
       }
 
       if (capman) {
-        if (--player.lives == 0) {
-          go_score = player.score;
-          high_score = (player.score > high_score) ? player.score : high_score;
+        if (--player->lives == 0) {
+          go_score = player->score;
+          high_score = (player->score > high_score) ? player->score : high_score;
         }
         reset_level();
       } else if (pills_eaten == pills_per_level) {
@@ -329,7 +337,7 @@ void update(uint32_t t) {
       }
     }
   } else if (buttons & Button::A) {
-    if (player.lives == 0) {
+    if (player->lives == 0) {
       game_over();
     }
     game_start = true;

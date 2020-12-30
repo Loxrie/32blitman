@@ -14,11 +14,11 @@ extern uint8_t *pill_data;
 
 extern blit::Map map;
 
-extern Pacman player;
-extern Blinky blinky;
-extern Pinky pinky;
-extern Inky inky;
-extern Clyde clyde;
+extern Pacman *player;
+extern Blinky *blinky;
+extern Pinky *pinky;
+extern Inky *inky;
+extern Clyde *clyde;
 
 extern uint32_t pills_eaten;
 extern uint32_t pills_eaten_this_life;

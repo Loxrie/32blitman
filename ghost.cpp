@@ -8,11 +8,13 @@ Ghost::Ghost() {
 
   direction = Button::DPAD_LEFT;
   desired_direction = direction;
+
+  scatter_target = Point( (9 * 8), 1 * 8);
   speed = 0.75f;
   last_update = 0;
   
   sprite = 0;
-
+  
   collision_detection = [this](Point tile_pt) -> void {
     if(map.has_flag(tile_pt, entityType::WALL)) {
         this->moving_to = entityType::WALL;
@@ -89,7 +91,7 @@ uint32_t Ghost::direction_to_target(Point target) {
   Point decision_tile = tile(location);
   target_tile = tile(target);
 
-  switch(player.direction) {
+  switch(player->direction) {
     case Button::DPAD_LEFT:
       target_tile.x -= target_offset;
       break;
@@ -295,14 +297,18 @@ void Ghost::update(uint32_t time) {
   moving_to = entityType::NOTHING;
   Rect bounds_lr;
 
-  Vec2 target = player.location;
+  Vec2 target = player->location;
   // If we're at a junction point choose a new direction.
+  bool junction = flags & entityType::JUNCTION;
   bool chase = state & ghostState::CHASE && !(state & ghostState::FRIGHTENED);
-  if (flags & entityType::JUNCTION && eaten()) {
+  bool scatter = state & ghostState::SCATTER && !(state & ghostState::FRIGHTENED);
+  if (junction && eaten()) {
     desired_direction = direction_to_target(ghost_house_door);
-  } else if (flags & entityType::JUNCTION && chase) {
+  } else if (junction && scatter) {
+    desired_direction = direction_to_target(scatter_target);
+  } else if (junction && chase) {
     desired_direction = direction_to_target(target);
-  } else if (flags & entityType::JUNCTION && state & ghostState::FRIGHTENED) {
+  } else if (junction && state & ghostState::FRIGHTENED) {
     desired_direction = random_direction();
   }
 
@@ -379,9 +385,6 @@ void Ghost::update(uint32_t time) {
   }
 }
 
-void Ghost::render() {
-  // screen.pen = Pen(255,0,255);
-  // screen.line(world_to_screen(location), world_to_screen(target_tile*8));
-  
+void Ghost::render() {  
   screen.sprite(ghostAnims[sprite], world_to_screen(location));
 }

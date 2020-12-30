@@ -15,7 +15,7 @@ Rect pacmanAnims[16] = {
 
 Pacman::Pacman() {
   size = Size(15,15);
-  location = Vec2((19*8)+4,27*8);
+  location = Vec2( (19 * 8) + 4, 27 * 8);
   movement = Vec2(0,0);
   direction = 0;
   desired_movement = movement;
@@ -37,7 +37,7 @@ Pacman::Pacman() {
 }
 
 void Pacman::init() {
-  location = Vec2((19*8)+4,27*8);
+  location = Vec2( (19 * 8) + 4, 27 * 8);
   movement = Vec2(0,0);
   direction = 0;
   power = 0;
