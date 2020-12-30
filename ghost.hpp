@@ -41,13 +41,14 @@ struct Ghost {
     uint32_t direction_to_target(blit::Point target);
     uint32_t random_direction();
 
+    bool edible();
     bool eaten();
-    void eaten(ghostState s);
     
     void set_move_state(ghostState s);
-    void clear_state(ghostState s);
-    void set_state(ghostState s);
+    void clear_state(uint8_t s);
+    void set_state(uint8_t s);
     void handle_house();
+    void handle_timers();
     void update(uint32_t time);
     void animate();
     void render();

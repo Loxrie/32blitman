@@ -1,6 +1,8 @@
 #ifndef CONST_H
 #define CONST_H
 
+const uint32_t button_debounce_rate = 120;
+
 constexpr uint16_t screen_width = 320;
 constexpr uint16_t screen_height = 240;
 

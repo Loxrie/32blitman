@@ -41,9 +41,15 @@ void power_timer_callback(Timer &timer) {
 }
 
 void start_power_timer(uint32_t ms) {
-  power_timer.duration = ms;
-  power_timer.loops = 1;
-  power_timer.start();
+  if (power_timer.is_running()) {
+    printf("Increasing power timer.\n");
+    power_timer.duration += ms;
+  } else {
+    printf("Starting power timer.\n");
+    power_timer.duration = ms;
+    power_timer.loops = 1;
+    power_timer.start();
+  }
 }
 
 void set_ghost_state(ghostState s) {
@@ -87,6 +93,7 @@ float deg2rad(float a) {
 }
 
 bool game_start;
+bool game_paused;
 uint32_t high_score;
 uint32_t go_score;
 
@@ -99,6 +106,7 @@ uint32_t go_score;
 void init() {
   srand(time(NULL));
   game_start = false;
+  game_paused = true;
   set_screen_mode(ScreenMode::hires);
 
   power_timer.init(power_timer_callback, 1000, 1);
@@ -229,18 +237,55 @@ void next_level() {
   reset_level();
 }
 
+void pause_game() {
+  printf("main::pausing game.\n");
+  for (auto ghost : ghosts) {
+    ghost->move_cycle_timer.pause();
+  }
+  power_timer.pause();
+  game_paused = true;
+}
+
+void resume_game() {
+  printf("main::resume_game resuming game %d.\n", power_timer.state);
+  for (auto ghost : ghosts) {
+    // Don't resume move cycle timer unless it is paused.
+    if ((ghost->state & ghostState::FRIGHTENED) == 0) {
+      printf("resume_game %s move resume.\n", ghost->name.c_str());
+      ghost->move_cycle_timer.start();
+    }
+  }
+  if (power_timer.state & Timer::PAUSED) {
+    printf("main::resume_game resuming power pill.\n");
+    power_timer.start();
+  }
+  game_paused = false;
+  if (!timer_level_animate.is_running()) {
+    timer_level_animate.start();
+  }
+}
+
 void reset_level() {
   player->init();
   blinky->init();
   pinky->init();
   inky->init();
   clyde->init();
+  power_timer.stop();
   timer_level_animate.stop();
+
+  blinky_cycle_index = 0;
+  pinky_cycle_index = 0;
+  inky_cycle_index = 0;
+  clyde_cycle_index = 0;
+
   pills_eaten_this_life = 0;
-  game_start = false;
+  game_paused = true;
 }
 
 void game_over() {
+  game_start = false;
+  game_paused = true;
   pills_eaten = 0;
   pills_eaten_this_life = 0;
   // Restore pills.
@@ -298,50 +343,63 @@ void render(uint32_t t) {
 //
 void update(uint32_t t) {
   static uint32_t last_animation = t;
-  if (game_start && player->lives > 0) {
-    if (buttons & Button::A) {
-      game_start = false;
-      timer_level_animate.stop();
-    } else {
-      player->update(t);
+  static uint32_t button_debounce = t;
+  if (game_start && !game_paused && player->lives > 0) {
+    player->update(t);
 
-      if (inky->state & ghostState::RESTING && pills_eaten_this_life >= 30) {
-        inky->set_state(ghostState::LEAVING);
-      }
+    if (inky->state & ghostState::RESTING && pills_eaten_this_life >= 30) {
+      inky->set_state(ghostState::LEAVING);
+    }
 
-      if (clyde->state & ghostState::RESTING && pills_eaten_this_life >= 60) {
-        clyde->set_state(ghostState::LEAVING);
-      }
+    if (clyde->state & ghostState::RESTING && pills_eaten_this_life >= 60) {
+      clyde->set_state(ghostState::LEAVING);
+    }
 
-      Point pacman_pt = tile(player->location);
-      bool capman = false;
-      for (auto ghost : ghosts) {
-        ghost->update(t);
-        Point ghost_pt = tile(ghost->location);
-        if (player->is_pilled_up() && !ghost->eaten() && pacman_pt == ghost_pt) {
-          ghost->eaten(ghostState::EATEN);
+    Point pacman_pt = tile(player->location);
+    bool capman = false;
+    for (auto ghost : ghosts) {
+      ghost->update(t);
+      Point ghost_pt = tile(ghost->location);
+      if (pacman_pt == ghost_pt) {
+        if (ghost->edible()) {
+          ghost->set_state(ghostState::EATEN);
           player->score += 100;
-        } else if (!player->is_pilled_up() && !ghost->eaten() && pacman_pt == ghost_pt) {
+        } else if (!ghost->eaten()) {
+          printf("%s ate pacman.\n", ghost->name.c_str());
           capman = true;
+          for (auto ghost : ghosts) {
+            ghost->move_cycle_timer.pause();
+          }
         }
-      }
-
-      if (capman) {
-        if (--player->lives == 0) {
-          go_score = player->score;
-          high_score = (player->score > high_score) ? player->score : high_score;
-        }
-        reset_level();
-      } else if (pills_eaten == pills_per_level) {
-        next_level();
       }
     }
-  } else if (buttons & Button::A) {
+
+    if (capman) {
+      if (--player->lives == 0) {
+        go_score = player->score;
+        high_score = (player->score > high_score) ? player->score : high_score;
+      }
+      reset_level();
+    } else if (pills_eaten == pills_per_level) {
+      next_level();
+    }
+
+    // Debounce pause.
+    if (buttons & Button::A && t - button_debounce > button_debounce_rate) {
+      button_debounce = t;
+      pause_game();
+    }
+  // Debounce pause.
+  } else if (buttons & Button::A && t - button_debounce > button_debounce_rate) {
+    button_debounce = t;
     if (player->lives == 0) {
       game_over();
     }
-    game_start = true;
-    timer_level_animate.start();
+    if (!game_start) {
+      printf("main::update starting game.\n");
+      game_start = true;
+    } 
+    resume_game();
   }
   update_camera();
 }

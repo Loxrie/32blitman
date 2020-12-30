@@ -179,51 +179,64 @@ uint32_t Ghost::random_direction() {
   random_direction = destinations[bloop % destinations.size()];
   return random_direction;
 }
-  
+
+bool Ghost::edible() {
+  printf("%s::edible state %d pilled %d.\n", name.c_str(), state, player->is_pilled_up());
+  return ((state & ghostState::EATEN) == 0 && state & ghostState::FRIGHTENED && player->is_pilled_up());
+}
+
 bool Ghost::eaten() {
   return state & ghostState::EATEN;
 }
 
-void Ghost::eaten(ghostState s) {
-  set_state(s);
-}
-
 void Ghost::set_move_state(ghostState s) {
-  state &= ~ ghostState::CHASE;
-  state &= ~ ghostState::SCATTER;
+  clear_state(ghostState::CHASE | ghostState::SCATTER);
   set_state(s);
 }
 
-void Ghost::set_state(ghostState s) {
+void Ghost::set_state(uint8_t s) {
+  printf("%s::set_state pre %d - input %d.\n", name.c_str(), state, s);
+  if ((state & ghostState::FRIGHTENED) == 0 && s == ghostState::FRIGHTENED) {
+    printf("%s::set_state pausing move cycle, entering frightened.\n", name.c_str());
+    move_cycle_timer.pause();
+  }
   state |= s;
+  printf("%s::set_state post %d.\n", name.c_str(), state);
 }
 
-void Ghost::clear_state(ghostState s) {
+void Ghost::clear_state(uint8_t s) {
+  if ((state & ghostState::FRIGHTENED) == 0 
+      && s & ghostState::FRIGHTENED
+      && move_cycle_timer.state & Timer::PAUSED)
+  {
+    printf("%s::set_state resuming move cycle, leaving frightened.\n", name.c_str());
+    move_cycle_timer.start();
+  }
+  printf("%s::clear_state pre  %d input %d\n", name.c_str(), state, s);
   state &= ~ s;
+  printf("%s::clear_state post %d\n", name.c_str(), state);
 }
 
 void Ghost::handle_house() {
   if (state & ghostState::EATEN && location == ghost_house_door) {
     direction = DPAD_DOWN;
-    state |= ghostState::ARRIVING;
+    set_state(ghostState::ARRIVING);
   }
 
   if (state & ghostState::LEAVING && location == ghost_house) {
     direction = Button::DPAD_UP;
-    state &= ~ ghostState::RESTING;
+    clear_state(ghostState::RESTING);
   }
 
   if (state & ghostState::LEAVING && location == ghost_house_door) {
     direction = Button::DPAD_LEFT;
-    state &= ~ ghostState::LEAVING;
+    clear_state(ghostState::LEAVING);
   }
 
   if (state & ghostState::EATEN && location == ghost_house) {
     direction = Button::DPAD_LEFT;
-    state &= ~ ghostState::EATEN;
-    state &= ~ ghostState::ARRIVING;
-    state &= ~ ghostState::FRIGHTENED;
-    state |= ghostState::LEAVING;
+    clear_state((ghostState::EATEN | ghostState::ARRIVING | ghostState::FRIGHTENED));
+    set_state(ghostState::LEAVING);
     return;
   }
   
@@ -302,7 +315,7 @@ void Ghost::update(uint32_t time) {
   bool junction = flags & entityType::JUNCTION;
   bool chase = state & ghostState::CHASE && !(state & ghostState::FRIGHTENED);
   bool scatter = state & ghostState::SCATTER && !(state & ghostState::FRIGHTENED);
-  if (junction && eaten()) {
+  if (junction && state & ghostState::EATEN) {
     desired_direction = direction_to_target(ghost_house_door);
   } else if (junction && scatter) {
     desired_direction = direction_to_target(scatter_target);

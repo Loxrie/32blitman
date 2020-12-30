@@ -6,6 +6,11 @@
 #ifndef GHOSTS_H
 #define GHOSTS_H
 
+extern int8_t blinky_cycle_index;
+extern int8_t pinky_cycle_index;
+extern int8_t inky_cycle_index;
+extern int8_t clyde_cycle_index;
+
 struct Blinky : Ghost {
   Blinky();
 
