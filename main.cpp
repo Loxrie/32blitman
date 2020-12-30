@@ -347,11 +347,13 @@ void update(uint32_t t) {
   if (game_start && !game_paused && player->lives > 0) {
     player->update(t);
 
-    if (inky->state & ghostState::RESTING && pills_eaten_this_life >= 30) {
+    // DOH SHOUTY FIX, move out to timer?
+    // We could move a lot of generic game state to a timer, this, house management etc.?
+    if (inky->state & ghostState::RESTING && (inky->state & ghostState::LEAVING) == 0 && pills_eaten_this_life >= 30) {
       inky->set_state(ghostState::LEAVING);
     }
 
-    if (clyde->state & ghostState::RESTING && pills_eaten_this_life >= 60) {
+    if (clyde->state & ghostState::RESTING && (clyde->state & ghostState::LEAVING) == 0 && pills_eaten_this_life >= 60) {
       clyde->set_state(ghostState::LEAVING);
     }
 
