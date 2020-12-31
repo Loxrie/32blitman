@@ -10,7 +10,7 @@ Ghost::Ghost() {
   desired_direction = direction;
 
   scatter_target = Point( (9 * 8), 1 * 8);
-  speed = 0.75f;
+  speed = 0.0f;
   last_update = 0;
   
   sprite = 0;
@@ -181,7 +181,6 @@ uint32_t Ghost::random_direction() {
 }
 
 bool Ghost::edible() {
-  printf("%s::edible state %d pilled %d.\n", name.c_str(), state, player->is_pilled_up());
   return ((state & ghostState::EATEN) == 0 && state & ghostState::FRIGHTENED && player->is_pilled_up());
 }
 
@@ -195,26 +194,23 @@ void Ghost::set_move_state(ghostState s) {
 }
 
 void Ghost::set_state(uint8_t s) {
-  printf("%s::set_state pre %d - input %d.\n", name.c_str(), state, s);
-  if ((state & ghostState::FRIGHTENED) == 0 && s == ghostState::FRIGHTENED) {
+  if ((state & ghostState::FRIGHTENED) == 0 && (s == ghostState::FRIGHTENED)) {
     printf("%s::set_state pausing move cycle, entering frightened.\n", name.c_str());
     move_cycle_timer.pause();
   }
   state |= s;
-  printf("%s::set_state post %d.\n", name.c_str(), state);
 }
 
 void Ghost::clear_state(uint8_t s) {
-  if ((state & ghostState::FRIGHTENED) == 0 
-      && s & ghostState::FRIGHTENED
-      && move_cycle_timer.state & Timer::PAUSED)
+  printf("%s::clear_state current state %d, flags to clear %d, move cycle %d.\n", name.c_str(), state, s, move_cycle_timer.state);
+  if ((state & ghostState::FRIGHTENED)
+      && (s & ghostState::FRIGHTENED)
+      && move_cycle_timer.is_paused())
   {
-    printf("%s::set_state resuming move cycle, leaving frightened.\n", name.c_str());
+    printf("%s::clear_state resuming move cycle, leaving frightened.\n", name.c_str());
     move_cycle_timer.start();
   }
-  printf("%s::clear_state pre  %d input %d\n", name.c_str(), state, s);
   state &= ~ s;
-  printf("%s::clear_state post %d\n", name.c_str(), state);
 }
 
 void Ghost::handle_house() {
@@ -253,15 +249,13 @@ void Ghost::update(uint32_t time) {
   Point tile_pt = tile(location);
   uint32_t flags = map.get_flags(tile_pt);
 
+  float c_speed = speed;
+
   // Adjust speed for being in WARP zone.
-  if (state & ghostState::EATEN) {
-    speed = 1.0f;
-  } else if (flags & entityType::WARP) {
-    speed = 0.40f;
+  if (flags & entityType::WARP) {
+    c_speed = tunnel_speed;
   } else if (state & ghostState::FRIGHTENED) {
-    speed = 0.50f;
-  } else {
-    speed = 0.75f;
+    c_speed = fright_speed;
   }
 
   // TODO We are in a PORTAL.
@@ -286,7 +280,7 @@ void Ghost::update(uint32_t time) {
     // Only update every "speed" fraction of frames. Assume 10ms update.
     // So by default we start updating at 10/0.75. 
     // This won't make much diff. for now.  Maybe move 2pixels per tic?
-    if (time - last_update > 20 / speed) {
+    if (time - last_update > 20 / c_speed) {
       last_update = time;
       switch (direction) {
         case Button::DPAD_LEFT:

@@ -15,17 +15,7 @@ Rect pacmanAnims[16] = {
 
 Pacman::Pacman() {
   size = Size(15,15);
-  location = Vec2( (19 * 8) + 4, 27 * 8);
-  movement = Vec2(0,0);
-  direction = 0;
-  desired_movement = movement;
-  desired_direction = direction;
 
-  speed = 0.8f;
-  
-  power = 0;
-
-  sprite = 0;
   lives = 4;
   score = 0;
 
@@ -34,23 +24,23 @@ Pacman::Pacman() {
       this->moving_to = entityType::WALL;
     }
   };
+  init(level_data[0]);
 }
 
-void Pacman::init() {
+void Pacman::init(LevelData ld) {
   location = Vec2( (19 * 8) + 4, 27 * 8);
   movement = Vec2(0,0);
   direction = 0;
+
+  speed = ld.pacman_speed;
+  dots_speed = ld.pacman_dots_speed;
+  fright_speed = ld.pacman_fright_speed;
+  fright_dots_speed = ld.pacman_fright_dots_speed;
+
   power = 0;
   sprite = 0;
   desired_movement = movement;
   desired_direction = direction;
-}
-
-void Pacman::new_game() {
-  speed = 0.8f;
-  score = 0;
-  lives = 4;
-  init();
 }
 
 bool Pacman::is_pilled_up() {
@@ -82,23 +72,20 @@ void Pacman::animate() {
 
 void Pacman::update(uint32_t time) {
   static uint32_t last_update = 0;
+  float c_speed = speed;
   moving_to = entityType::NOTHING;
   Rect bounds_lr;
 
   Point tile_pt = tile(location);
   uint32_t flags = map.get_flags(tile_pt);
 
-  if (flags & entityType::NOTHING) {
-    speed = 0.80f;
-    if (power)
-      speed = 0.90f;
-  }
+  if (power)
+    c_speed = fright_speed;
 
   if (level_get(tile_pt) == entityType::PILL) {
+    c_speed = dots_speed;
     if (power)
-      speed = 0.71f;
-    else 
-      speed = 0.79f;
+      c_speed = fright_dots_speed;
     score += 10;
     pills_eaten++;
     pills_eaten_this_life++;
@@ -106,14 +93,14 @@ void Pacman::update(uint32_t time) {
   }
 
   if (level_get(tile_pt) == entityType::POWER) {
-    speed = 0.90f;
+    printf("Pacman::update ate power pill.\n");
     power = 1;
     score += 50;
     pills_eaten++;
     pills_eaten_this_life++;
     level_set(tile_pt, entityType::NOTHING);
-    start_power_timer(10000);
-    set_ghost_state(ghostState::FRIGHTENED);
+    start_power_timer();
+    Ghosts::set_state(ghostState::FRIGHTENED);
   }
 
   // TODO We are in a PORTAL.
@@ -161,7 +148,7 @@ void Pacman::update(uint32_t time) {
   }
 
   uint32_t time_passed = time - last_update;
-  if (time_passed > 10 / speed && moving_to == entityType::NOTHING) {
+  if (time_passed > 10 / c_speed && moving_to == entityType::NOTHING) {
     last_update = time;
     location += movement;
   }

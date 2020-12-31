@@ -13,6 +13,9 @@ struct Pacman {
     uint32_t direction;
 
     float speed;
+    float dots_speed;
+    float fright_speed;
+    float fright_dots_speed;
 
     void power_timer_callback(blit::Timer &t);
     blit::Timer power_timer;
@@ -28,7 +31,7 @@ struct Pacman {
     uint32_t lives;
 
     Pacman();
-    void init();
+    void init(LevelData ld);
     void new_game();
     bool is_pilled_up();
 

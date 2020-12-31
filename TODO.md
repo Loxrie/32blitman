@@ -14,3 +14,4 @@ TODO
 - Ghost vs Pacman speeds wonky.
 - No fruit.
 - Level changes to ghost/pacman/fruit.
+- Scatter randomisation is not sufficiently random, nor is terrified fleeing.

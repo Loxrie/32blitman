@@ -111,4 +111,32 @@ enum ghostState {
   LEAVING = 128
 };
 
+struct LevelData {
+  // Sprite for bonus fruit.
+  uint32_t bonus_image;
+  // Points for bonus fruit.
+  uint32_t bonus_points;
+  
+  // As a percentage of an unknown max.
+  float pacman_speed; 
+  float pacman_dots_speed;
+  float pacman_fright_speed;
+  float pacman_fright_dots_speed;
+  // As a percentage of an unknown max.
+  float ghost_speed;
+  float ghost_tunnel_speed;
+  float ghost_fright_speed;
+
+  uint32_t fright_time; // in ms.
+  uint32_t fight_warning_count; // No of warnings before ghosts revert.
+};
+
+static std::vector<LevelData> level_data = {
+  {0, 100, 0.8f, 0.71f, 0.90f, 0.79f, 0.75f, 0.40f, 0.55f, 6000, 5},
+  {1, 300, 0.9f, 0.79f, 0.95f, 0.83f, 0.85f, 0.45f, 0.55f, 5000, 5},
+  {2, 500, 0.9f, 0.79f, 0.95f, 0.83f, 0.85f, 0.45f, 0.55f, 4000, 5},
+  {2, 500, 0.9f, 0.79f, 0.95f, 0.83f, 0.85f, 0.45f, 0.55f, 3000, 5},
+  {3, 700, 1.0f, 0.87f, 1.00f, 0.87f, 0.95f, 0.50f, 0.60f, 2000, 5}
+};
+
 #endif

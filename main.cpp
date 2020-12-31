@@ -9,10 +9,11 @@ using namespace blit;
 
 Mat3 camera;
 
-uint8_t *level_data;
 uint8_t *pill_data;
+uint8_t current_level;
 
 TileMap *level;
+
 
 Map map(blit::Rect(0, 0, level_height, level_height));
 
@@ -30,31 +31,23 @@ Clyde *clyde;
 uint32_t pills_eaten;
 uint32_t pills_eaten_this_life;
 
-std::vector<Ghost *> ghosts;
-
 void power_timer_callback(Timer &timer) {
-  printf("Power pill expired.\n");
+  printf("main::power_timer_callback Power pill expired %d - %d - %d.\n", timer.duration, timer.started, now());
   player->power = 0;
-  for (auto ghost: ghosts) {
-    ghost->clear_state(ghostState::FRIGHTENED);
-  }
+  Ghosts::clear_state(ghostState::FRIGHTENED);
 }
 
-void start_power_timer(uint32_t ms) {
+void start_power_timer() {
+  uint32_t ms = level_data[current_level].fright_time;
+  printf("main::start_power_timer state currently %d.\n", power_timer.state);
   if (power_timer.is_running()) {
-    printf("Increasing power timer.\n");
+    printf("main::start_power_timer Increasing power timer %d by %d.\n", power_timer.duration, ms);
     power_timer.duration += ms;
   } else {
-    printf("Starting power timer.\n");
     power_timer.duration = ms;
     power_timer.loops = 1;
+    printf("main::start_power_timer Starting power timer %d.\n", power_timer.duration);
     power_timer.start();
-  }
-}
-
-void set_ghost_state(ghostState s) {
-  for (auto ghost : ghosts) {
-    ghost->set_state(s);
   }
 }
 
@@ -93,7 +86,6 @@ float deg2rad(float a) {
 }
 
 bool game_start;
-bool game_paused;
 uint32_t high_score;
 uint32_t go_score;
 
@@ -104,9 +96,9 @@ uint32_t go_score;
 // setup your game here
 //
 void init() {
+  current_level = 0;
   srand(time(NULL));
   game_start = false;
-  game_paused = true;
   set_screen_mode(ScreenMode::hires);
 
   power_timer.init(power_timer_callback, 1000, 1);
@@ -124,18 +116,13 @@ void init() {
 
   // Load sprite sheet.
   screen.sprites = SpriteSheet::load(asset_level);
-
-  // Malloc memory for level.
-  level_data = (uint8_t *)malloc(level_width * level_height);
   
   Mat3 rotation = Mat3::identity();
   rotation *= Mat3::rotation(deg2rad(90));
 
   // Load level data in.
-  level = new TileMap((uint8_t *)level_data, nullptr, Size(level_width, level_height), screen.sprites);
-  for(auto x = 0; x < level_width * level_height; x++){
-    level_data[x] = asset_assets_level1_tmx[x];
-  }
+  level = new TileMap((uint8_t *)asset_assets_level1_tmx, nullptr, Size(level_width, level_height), screen.sprites);
+
   std::vector<uint8_t> mazeVector(asset_assets_level1_tmx_length);
   mazeVector.assign(&asset_assets_level1_tmx[0], &asset_assets_level1_tmx[asset_assets_level1_tmx_length]);
 
@@ -230,69 +217,67 @@ void draw_layer(uint8_t *layer, int32_t offset) {
 }
 
 void next_level() {
+  printf("main::next_level ---- NEXT LEVEL ----\n");
+  current_level++;
+
   for(auto x = 0; x < level_width * level_height; x++){
     pill_data[x] = asset_pills[x];
   }
   pills_eaten = 0;
-  reset_level();
-}
-
-void pause_game() {
-  printf("main::pausing game.\n");
-  for (auto ghost : ghosts) {
-    ghost->move_cycle_timer.pause();
-  }
-  power_timer.pause();
-  game_paused = true;
-}
-
-void resume_game() {
-  printf("main::resume_game resuming game %d.\n", power_timer.state);
-  for (auto ghost : ghosts) {
-    // Don't resume move cycle timer unless it is paused.
-    if ((ghost->state & ghostState::FRIGHTENED) == 0) {
-      printf("resume_game %s move resume.\n", ghost->name.c_str());
-      ghost->move_cycle_timer.start();
-    }
-  }
-  if (power_timer.state & Timer::PAUSED) {
-    printf("main::resume_game resuming power pill.\n");
-    power_timer.start();
-  }
-  game_paused = false;
-  if (!timer_level_animate.is_running()) {
-    timer_level_animate.start();
-  }
-}
-
-void reset_level() {
-  player->init();
-  blinky->init();
-  pinky->init();
-  inky->init();
-  clyde->init();
-  power_timer.stop();
-  timer_level_animate.stop();
 
   blinky_cycle_index = 0;
   pinky_cycle_index = 0;
   inky_cycle_index = 0;
   clyde_cycle_index = 0;
 
+  Ghosts::move_reset_and_pause();
+
+  reset_level();
+}
+
+void pause_game() {
+  printf("main::pause_game pausing ghost cycle timer.\n");
+  Ghosts::move_pause();
+  if (power_timer.is_running()) {
+    printf("main::pause_game pausing power timer.\n");
+    power_timer.pause();
+  }
+}
+
+void resume_game() {
+  printf("main::resume_game resuming game %d.\n", power_timer.state);
+  Ghosts::move_resume();
+  if (power_timer.is_paused()) {
+    printf("main::resume_game resuming power pill.\n");
+    power_timer.start();
+  }
+  if (!timer_level_animate.is_running()) {
+    timer_level_animate.start();
+  }
+}
+
+void reset_level() {
+  game_start = false;
+
+  player->init(level_data[current_level]);
+  Ghosts::move_pause();
+  Ghosts::init(current_level);
+
+  power_timer.stop();
+  timer_level_animate.stop();
+
   pills_eaten_this_life = 0;
-  game_paused = true;
 }
 
 void game_over() {
   game_start = false;
-  game_paused = true;
   pills_eaten = 0;
   pills_eaten_this_life = 0;
   // Restore pills.
   for(auto x = 0; x < level_width * level_height; x++){
     pill_data[x] = asset_pills[x];
   }
-  player->new_game();
+  player->init(level_data[0]);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -311,7 +296,6 @@ void render(uint32_t t) {
   draw_layer(pill_data, 4);
 
   player->render();
-
   for (auto ghost : ghosts) {
     ghost->render();
   }
@@ -342,9 +326,12 @@ void render(uint32_t t) {
 // amount if milliseconds elapsed since the start of your game
 //
 void update(uint32_t t) {
+  if (power_timer.is_running()) {
+    printf("main::update %d power timer timer pre  dur - %d started - %d loops - %d state - %d\n", t, power_timer.duration,power_timer.started,power_timer.loops,power_timer.state);
+  }
   static uint32_t last_animation = t;
   static uint32_t button_debounce = t;
-  if (game_start && !game_paused && player->lives > 0) {
+  if (game_start && player->lives > 0) {
     player->update(t);
 
     // DOH SHOUTY FIX, move out to timer?
@@ -357,26 +344,8 @@ void update(uint32_t t) {
       clyde->set_state(ghostState::LEAVING);
     }
 
-    Point pacman_pt = tile(player->location);
-    bool capman = false;
-    for (auto ghost : ghosts) {
-      ghost->update(t);
-      Point ghost_pt = tile(ghost->location);
-      if (pacman_pt == ghost_pt) {
-        if (ghost->edible()) {
-          ghost->set_state(ghostState::EATEN);
-          player->score += 100;
-        } else if (!ghost->eaten()) {
-          printf("%s ate pacman.\n", ghost->name.c_str());
-          capman = true;
-          for (auto ghost : ghosts) {
-            ghost->move_cycle_timer.pause();
-          }
-        }
-      }
-    }
-
-    if (capman) {
+    bool pacman_eaten = Ghosts::update(t);
+    if (pacman_eaten) {
       if (--player->lives == 0) {
         go_score = player->score;
         high_score = (player->score > high_score) ? player->score : high_score;
@@ -385,12 +354,6 @@ void update(uint32_t t) {
     } else if (pills_eaten == pills_per_level) {
       next_level();
     }
-
-    // Debounce pause.
-    if (buttons & Button::A && t - button_debounce > button_debounce_rate) {
-      button_debounce = t;
-      pause_game();
-    }
   // Debounce pause.
   } else if (buttons & Button::A && t - button_debounce > button_debounce_rate) {
     button_debounce = t;
@@ -398,10 +361,11 @@ void update(uint32_t t) {
       game_over();
     }
     if (!game_start) {
-      printf("main::update starting game.\n");
+      printf("main::update starting game or level.\n");
       game_start = true;
-    } 
-    resume_game();
+      timer_level_animate.start();
+      Ghosts::move_start();
+    }
   }
   update_camera();
 }

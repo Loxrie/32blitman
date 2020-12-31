@@ -24,7 +24,10 @@ struct Ghost {
     blit::Point scatter_target;
 
     uint32_t last_update;
+
     float speed;
+    float tunnel_speed;
+    float fright_speed;
 
     uint8_t state;
 
