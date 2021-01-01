@@ -128,15 +128,17 @@ struct LevelData {
   float ghost_fright_speed;
 
   uint32_t fright_time; // in ms.
-  uint32_t fight_warning_count; // No of warnings before ghosts revert.
+  // ms of warnings before ghosts revert.  Was "no. of flashes" og
+  // We animate roughly every 100ms for ghosts, so 1000 should be 5 complete flashes.
+  uint32_t fright_warning_time; 
 };
 
 static std::vector<LevelData> level_data = {
-  {0, 100, 0.8f, 0.71f, 0.90f, 0.79f, 0.75f, 0.40f, 0.55f, 6000, 5},
-  {1, 300, 0.9f, 0.79f, 0.95f, 0.83f, 0.85f, 0.45f, 0.55f, 5000, 5},
-  {2, 500, 0.9f, 0.79f, 0.95f, 0.83f, 0.85f, 0.45f, 0.55f, 4000, 5},
-  {2, 500, 0.9f, 0.79f, 0.95f, 0.83f, 0.85f, 0.45f, 0.55f, 3000, 5},
-  {3, 700, 1.0f, 0.87f, 1.00f, 0.87f, 0.95f, 0.50f, 0.60f, 2000, 5}
+  {0, 100, 0.8f, 0.71f, 0.90f, 0.79f, 0.75f, 0.40f, 0.55f, 6000, 1100},
+  {1, 300, 0.9f, 0.79f, 0.95f, 0.83f, 0.85f, 0.45f, 0.55f, 5000, 1100},
+  {2, 500, 0.9f, 0.79f, 0.95f, 0.83f, 0.85f, 0.45f, 0.55f, 4000, 1100},
+  {2, 500, 0.9f, 0.79f, 0.95f, 0.83f, 0.85f, 0.45f, 0.55f, 3000, 1100},
+  {3, 700, 1.0f, 0.87f, 1.00f, 0.87f, 0.95f, 0.50f, 0.60f, 2000, 1100}
 };
 
 #endif

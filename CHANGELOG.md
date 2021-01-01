@@ -1,6 +1,16 @@
+01/01/21
+
+- Added lives counter.
+- Flashing ghosts based on level warning flash count
+- Score reset on new game.
+- Fix camera to center more of the maze
+- ^^ made pill drawing a bit wobbly, fix that by abandoning draw_layer and using another Mat3 transform.
+- ^^ this may have made ghost/pacman drawing a little wobbly :-D
+- Frightened randomisation was really broken, now fixed.
 
 31/12/20
 
+- Fix unable to restart from game over.
 - Ghosts managed code moved to static Ghosts methods.
 - Removed unused level_data, reused var name for difficulty level mapping
 - Next level proceeds to next difficulty in level mapping.

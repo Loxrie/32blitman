@@ -8,9 +8,11 @@
 #include "ghost.hpp"
 #include "ghosts.hpp"
 
-extern blit::SpriteSheet *sprites;
+extern blit::SpriteSheet *level_sprites;
+extern blit::Timer power_timer;
 
 extern uint8_t *pill_data;
+extern uint8_t current_level;
 
 extern blit::Map map;
 

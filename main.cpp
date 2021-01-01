@@ -13,7 +13,9 @@ uint8_t *pill_data;
 uint8_t current_level;
 
 TileMap *level;
+TileMap *pills;
 
+SpriteSheet *level_sprites;
 
 Map map(blit::Rect(0, 0, level_height, level_height));
 
@@ -32,21 +34,21 @@ uint32_t pills_eaten;
 uint32_t pills_eaten_this_life;
 
 void power_timer_callback(Timer &timer) {
-  printf("main::power_timer_callback Power pill expired %d - %d - %d.\n", timer.duration, timer.started, now());
+  //printf("main::power_timer_callback Power pill expired %d - %d - %d.\n", timer.duration, timer.started, now());
   player->power = 0;
   Ghosts::clear_state(ghostState::FRIGHTENED);
 }
 
 void start_power_timer() {
   uint32_t ms = level_data[current_level].fright_time;
-  printf("main::start_power_timer state currently %d.\n", power_timer.state);
+  //printf("main::start_power_timer state currently %d.\n", power_timer.state);
   if (power_timer.is_running()) {
-    printf("main::start_power_timer Increasing power timer %d by %d.\n", power_timer.duration, ms);
+    //printf("main::start_power_timer Increasing power timer %d by %d.\n", power_timer.duration, ms);
     power_timer.duration += ms;
   } else {
     power_timer.duration = ms;
     power_timer.loops = 1;
-    printf("main::start_power_timer Starting power timer %d.\n", power_timer.duration);
+    //printf("main::start_power_timer Starting power timer %d.\n", power_timer.duration);
     power_timer.start();
   }
 }
@@ -60,10 +62,11 @@ bool operator!=(Point a, Point b) {
 }
 
 void animate_level(Timer &timer) {
+  uint32_t t = now();
   player->animate();
   if (bodge_ghost_animation) {
     for (auto ghost : ghosts) {
-      ghost->animate();
+      ghost->animate(t);
     }
   }
   bodge_ghost_animation = !bodge_ghost_animation;
@@ -101,8 +104,15 @@ void init() {
   game_start = false;
   set_screen_mode(ScreenMode::hires);
 
+  // Load level sprites sheet. Maze | Pills | Fruit
+  screen.sprites = SpriteSheet::load(asset_sprites);
+  // Load ghost/pacman sprites
+  level_sprites = SpriteSheet::load(asset_level);
+  
   power_timer.init(power_timer_callback, 1000, 1);
   
+  // Animate at 20fps. Though we bodge ghost animation to 10fps.
+  // Note this is animation not movement.
   timer_level_animate.init(animate_level, 50, -1);
 
   // Setup pacman/ghosts here so timers don't crash.
@@ -113,16 +123,12 @@ void init() {
   clyde = new Clyde();
 
   ghosts.assign({blinky, pinky, inky, clyde});
-
-  // Load sprite sheet.
-  screen.sprites = SpriteSheet::load(asset_level);
   
   Mat3 rotation = Mat3::identity();
   rotation *= Mat3::rotation(deg2rad(90));
 
   // Load level data in.
-  level = new TileMap((uint8_t *)asset_assets_level1_tmx, nullptr, Size(level_width, level_height), screen.sprites);
-
+  level = new TileMap((uint8_t *)asset_assets_level1_tmx, nullptr, Size(level_width, level_height), level_sprites);
   std::vector<uint8_t> mazeVector(asset_assets_level1_tmx_length);
   mazeVector.assign(&asset_assets_level1_tmx[0], &asset_assets_level1_tmx[asset_assets_level1_tmx_length]);
 
@@ -143,6 +149,8 @@ void init() {
   for(auto x = 0; x < level_width * level_height; x++){
     pill_data[x] = asset_pills[x];
   }
+  pills = new TileMap(pill_data, nullptr, Size(level_width, level_height), level_sprites);
+  pills->offset(4,4);
 }
 
 // Line-interrupt callback for level->draw that applies our camera transformation
@@ -151,9 +159,16 @@ std::function<Mat3(uint8_t)> level_line_interrupt_callback = [](uint8_t y) -> Ma
   return camera;
 };
 
+// Nasty hack to offset pills from tiles to appear at the center of the maze paths.
+std::function<Mat3(uint8_t)> pill_line_interrupt_callback = [](uint8_t y) -> Mat3 {
+  return camera * Mat3::translation(Vec2(-4, -4));
+};
+
 void update_camera() {
+  Vec2 center = Vec2(19*8+4,18*8);
   camera = Mat3::identity();
-  camera *= Mat3::translation(Vec2(player->location.x, player->location.y)); // offset to middle of world
+  // camera *= Mat3::translation(Vec2(player->location.x, player->location.y)); // offset to middle of world
+  camera *= Mat3::translation(Vec2((center.x+player->location.x)/2, (center.y+player->location.y)/2)); // Move middle of world - pacman to top left.
   camera *= Mat3::translation(Vec2(-screen_width / 2, -screen_height / 2)); // transform to centre of framebuffer
 }
 
@@ -191,33 +206,8 @@ Point tile(Point point) {
   return Point(clamp(point.x/8,0,level_width),clamp(point.y/8,0,level_height));
 }
 
-void draw_layer(uint8_t *layer) {
-  draw_layer(layer, 0);
-}
-
-void draw_layer(uint8_t *layer, int32_t offset) {
-  Point tl = screen_to_world(Point(0, 0));
-  Point br = screen_to_world(Point(screen.bounds.w, screen.bounds.h));
-
-  Point tlt = tile(tl);
-  Point brt = tile(br);
-
-  for (uint8_t y = tlt.y; y <= brt.y; y++) {
-    for (uint8_t x = tlt.x; x <= brt.x; x++) {
-      Point pt = world_to_screen(Point(x * 8 + offset, y * 8 + offset));
-      int32_t ti = y * level_width + x;
-      if (ti != -1) {
-        uint8_t si = pill_data[ti];
-        if (si != 0) {
-          screen.sprite(si, pt);
-        }
-      }
-    }
-  }
-}
-
 void next_level() {
-  printf("main::next_level ---- NEXT LEVEL ----\n");
+  //printf("main::next_level ---- NEXT LEVEL ----\n");
   current_level++;
 
   for(auto x = 0; x < level_width * level_height; x++){
@@ -236,19 +226,19 @@ void next_level() {
 }
 
 void pause_game() {
-  printf("main::pause_game pausing ghost cycle timer.\n");
+  //printf("main::pause_game pausing ghost cycle timer.\n");
   Ghosts::move_pause();
   if (power_timer.is_running()) {
-    printf("main::pause_game pausing power timer.\n");
+    //printf("main::pause_game pausing power timer.\n");
     power_timer.pause();
   }
 }
 
 void resume_game() {
-  printf("main::resume_game resuming game %d.\n", power_timer.state);
+  //printf("main::resume_game resuming game %d.\n", power_timer.state);
   Ghosts::move_resume();
   if (power_timer.is_paused()) {
-    printf("main::resume_game resuming power pill.\n");
+    //printf("main::resume_game resuming power pill.\n");
     power_timer.start();
   }
   if (!timer_level_animate.is_running()) {
@@ -278,6 +268,7 @@ void game_over() {
     pill_data[x] = asset_pills[x];
   }
   player->lives = 4;
+  player->score = 0;
   player->init(level_data[0]);
 }
 
@@ -292,10 +283,13 @@ void render(uint32_t t) {
   // clear the screen -- screen is a reference to the frame buffer and can be used to draw all things with the 32blit
   screen.pen = Pen(0, 0, 0);
   screen.clear();
-  level->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), level_line_interrupt_callback);
-  
-  draw_layer(pill_data, 4);
 
+  // Draw maze.
+  level->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), level_line_interrupt_callback);
+
+  // LOL i swear this is faster than drawing the layer before.
+  pills->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), pill_line_interrupt_callback);
+  
   player->render();
   for (auto ghost : ghosts) {
     ghost->render();
@@ -305,7 +299,7 @@ void render(uint32_t t) {
   screen.pen = Pen(0, 0, 1);
   screen.rectangle(Rect(0, 0, screen_width, 10));
   screen.pen = Pen(255, 255, 255);
-  screen.text("    " + std::to_string(player->score), minimal_font, Point(2, 2));
+  screen.text("Score " + std::to_string(player->score), minimal_font, Point(30, 2));
 
   // Draw game over screen.
   if (player->lives == 0) {
@@ -316,6 +310,11 @@ void render(uint32_t t) {
     screen.text(" Your score " + std::to_string(go_score), minimal_font, Point(screen_width/2 - 20, screen_height/2 + 10));
   }
   
+  // Draw footer bar
+  screen.pen = Pen(0, 0, 1);
+  screen.rectangle(Rect(0, screen_height - 20, screen_width, 20));
+  player->render_lives();
+
   screen.pen = Pen(0, 0, 0);
 }
 
@@ -328,7 +327,7 @@ void render(uint32_t t) {
 //
 void update(uint32_t t) {
   if (power_timer.is_running()) {
-    printf("main::update %d power timer timer pre  dur - %d started - %d loops - %d state - %d\n", t, power_timer.duration,power_timer.started,power_timer.loops,power_timer.state);
+    //printf("main::update %d power timer timer pre  dur - %d started - %d loops - %d state - %d\n", t, power_timer.duration,power_timer.started,power_timer.loops,power_timer.state);
   }
   static uint32_t last_animation = t;
   static uint32_t button_debounce = t;
@@ -362,7 +361,7 @@ void update(uint32_t t) {
       game_over();
     }
     if (!game_start) {
-      printf("main::update starting game or level.\n");
+      //printf("main::update starting game or level.\n");
       game_start = true;
       timer_level_animate.start();
       Ghosts::move_start();

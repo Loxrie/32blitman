@@ -4,15 +4,61 @@
 #ifndef GHOST_H
 #define GHOST_H
 
-extern blit::Rect ghostAnims[12];
+const blit::Rect ghostAnims[38] = {
+  // Blinky
+  blit::Rect(0,0,2,2),
+  blit::Rect(2,0,2,2),
+  blit::Rect(4,0,2,2),
+  blit::Rect(6,0,2,2),
+  blit::Rect(8,0,2,2),
+  blit::Rect(10,0,2,2),
+  blit::Rect(12,0,2,2),
+  blit::Rect(14,0,2,2),
+  // Pinky
+  blit::Rect(0,2,2,2),
+  blit::Rect(2,2,2,2),
+  blit::Rect(4,2,2,2),
+  blit::Rect(6,2,2,2),
+  blit::Rect(8,2,2,2),
+  blit::Rect(10,2,2,2),
+  blit::Rect(12,2,2,2),
+  blit::Rect(14,2,2,2),
+  // Inky
+  blit::Rect(0,4,2,2),
+  blit::Rect(2,4,2,2),
+  blit::Rect(4,4,2,2),
+  blit::Rect(6,4,2,2),
+  blit::Rect(8,4,2,2),
+  blit::Rect(10,4,2,2),
+  blit::Rect(12,4,2,2),
+  blit::Rect(14,4,2,2),
+  // Clyde      
+  blit::Rect(0,6,2,2),
+  blit::Rect(2,6,2,2),
+  blit::Rect(4,6,2,2),
+  blit::Rect(6,6,2,2),
+  blit::Rect(8,6,2,2),
+  blit::Rect(10,6,2,2),
+  blit::Rect(12,6,2,2),
+  blit::Rect(14,6,2,2),
+  // Scared
+  blit::Rect(0,8,2,2),
+  blit::Rect(2,8,2,2),
+  // Flashing
+  blit::Rect(0,8,2,2),
+  blit::Rect(4,8,2,2),
+  // Eyes
+  blit::Rect(6,8,2,2),
+  blit::Rect(8,8,2,2)
+};
 
 struct Ghost {
   public:
     std::string name;
     
-    blit::Rect ghostAnims[14];
-
     blit::Size size;
+    uint8_t anim_offset;
+
     blit::Point location;
 
     int32_t target_offset;
@@ -53,7 +99,7 @@ struct Ghost {
     void handle_house();
     void handle_timers();
     void update(uint32_t time);
-    void animate();
+    void animate(uint32_t t);
     void render();
 
     std::function<void(blit::Point)> collision_detection;

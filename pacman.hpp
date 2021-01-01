@@ -38,6 +38,7 @@ struct Pacman {
     void animate();
     void update(uint32_t time);
     void render();
+    void render_lives();
     
     // How do I make this not be here?
     std::function<void(blit::Point)> collision_detection;

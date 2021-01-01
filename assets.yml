@@ -3,6 +3,9 @@ assets.cpp:
   ./assets/level.png:
     name: level
     transparent: 0,0,0
+  ./assets/sprites.png:
+    name: sprites
+    transparent: 0,0,0
   assets/level*.tmx:
     name:
   assets/pills.tmx:

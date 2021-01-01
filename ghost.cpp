@@ -22,34 +22,33 @@ Ghost::Ghost() {
   };
 }
 
-void Ghost::animate() {
-  uint8_t offset = 0;
-  switch(direction) {
-    case Button::DPAD_LEFT:
-      offset = 0;
-      break;
-    case Button::DPAD_RIGHT:
-      offset = 2;
-      break;
-    case Button::DPAD_UP:
-      offset = 4;
-      break;
-    case Button::DPAD_DOWN:
-      offset = 6;
-      break;
-  }
+// This is called once every 100ms or so.
+void Ghost::animate(uint32_t t) {
   if (state & ghostState::EATEN) {
-    offset = 10;
+    sprite = (sprite % 2) ? 37 : 36;
   } else if (state & ghostState::FRIGHTENED) {
-    offset = 8;
-  } 
-  switch (sprite % 2) {
-    case 0: 
-      sprite = offset + 1;
-      break;
-    case 1:
-      sprite = offset;
-      break;
+    if (power_timer.is_running() 
+        && (power_timer.duration - (t - power_timer.started)) < level_data[current_level].fright_warning_time)
+    {
+      sprite = (sprite % 2) ? 34 : 35;
+    } else {
+      sprite = (sprite % 2) ? 32 : 33;
+    }
+  } else {
+    switch(direction) {
+      case Button::DPAD_LEFT:
+        sprite = (sprite % 2) ? anim_offset : anim_offset + 1;
+        break;
+      case Button::DPAD_RIGHT:
+        sprite = (sprite % 2) ? anim_offset + 2 : anim_offset + 3;
+        break;
+      case Button::DPAD_UP:
+        sprite = (sprite % 2) ? anim_offset + 4 : anim_offset + 5;
+        break;
+      case Button::DPAD_DOWN:
+        sprite = (sprite % 2) ? anim_offset + 6 : anim_offset + 7;
+        break;
+    }
   }
 }
 
@@ -157,27 +156,7 @@ uint32_t Ghost::random_direction() {
     return 0;
   }
 
-  std::vector<uint32_t> destinations;
-  for (uint32_t corner : search->second) {
-    if (corner == inverted_direction) {
-      continue;
-    }
-    auto dirSearch = dirToVector.find(corner);
-    if (dirSearch == dirToVector.end()) {
-      return 0;
-    }
-    Vec2 vector = dirSearch->second;
-
-    moving_to = entityType::NOTHING;
-    map.tiles_in_rect(center(location + vector), collision_detection);
-    if (moving_to == entityType::NOTHING) {
-      destinations.push_back(corner);
-      break;
-    }
-  }
-
-  random_direction = destinations[bloop % destinations.size()];
-  return random_direction;
+  return search->second[bloop % search->second.size()];
 }
 
 bool Ghost::edible() {
@@ -195,19 +174,19 @@ void Ghost::set_move_state(ghostState s) {
 
 void Ghost::set_state(uint8_t s) {
   if ((state & ghostState::FRIGHTENED) == 0 && (s == ghostState::FRIGHTENED)) {
-    printf("%s::set_state pausing move cycle, entering frightened.\n", name.c_str());
+    //printf("%s::set_state pausing move cycle, entering frightened.\n", name.c_str());
     move_cycle_timer.pause();
   }
   state |= s;
 }
 
 void Ghost::clear_state(uint8_t s) {
-  printf("%s::clear_state current state %d, flags to clear %d, move cycle %d.\n", name.c_str(), state, s, move_cycle_timer.state);
+  //printf("%s::clear_state current state %d, flags to clear %d, move cycle %d.\n", name.c_str(), state, s, move_cycle_timer.state);
   if ((state & ghostState::FRIGHTENED)
       && (s & ghostState::FRIGHTENED)
       && move_cycle_timer.is_paused())
   {
-    printf("%s::clear_state resuming move cycle, leaving frightened.\n", name.c_str());
+    //printf("%s::clear_state resuming move cycle, leaving frightened.\n", name.c_str());
     move_cycle_timer.start();
   }
   state &= ~ s;
@@ -307,15 +286,15 @@ void Ghost::update(uint32_t time) {
   Vec2 target = player->location;
   // If we're at a junction point choose a new direction.
   bool junction = flags & entityType::JUNCTION;
-  bool chase = state & ghostState::CHASE && !(state & ghostState::FRIGHTENED);
-  bool scatter = state & ghostState::SCATTER && !(state & ghostState::FRIGHTENED);
-  if (junction && state & ghostState::EATEN) {
+  bool chase = (state & ghostState::CHASE) && (state & ghostState::FRIGHTENED) == 0;
+  bool scatter = (state & ghostState::SCATTER) && (state & ghostState::FRIGHTENED) == 0;
+  if (junction && (state & ghostState::EATEN)) {
     desired_direction = direction_to_target(ghost_house_door);
   } else if (junction && scatter) {
     desired_direction = direction_to_target(scatter_target);
   } else if (junction && chase) {
     desired_direction = direction_to_target(target);
-  } else if (junction && state & ghostState::FRIGHTENED) {
+  } else if (junction && (state & ghostState::FRIGHTENED)) {
     desired_direction = random_direction();
   }
 

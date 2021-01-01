@@ -1,17 +1,16 @@
 
 NEXT
 
-- Scatter/Chase cycle.
+- You can escape the maze during the tunnel warp.
+- No ghost reversal on state change or house exit.
+- Sound
+- Pacman death anim.
 
 TODO
 
+- Arcade like 'freeze' on eating ghost?
 - No chaining bonus for eating ghosts?  Was there one?
-- Sprites for lives/fruit.
-- Display for lives/fruit.
-- Scared ghost animations wonky.  Need animation and flashing fixed.
+- Implement fruit.
 - Pacman cornering is wrong.  Permit 45 degree angle corners for speed.
 - Ghost cornering needs slowdown.
-- Ghost vs Pacman speeds wonky.
-- No fruit.
-- Level changes to ghost/pacman/fruit.
-- Scatter randomisation is not sufficiently random, nor is terrified fleeing.
+- Ghost vs Pacman speeds wonky?

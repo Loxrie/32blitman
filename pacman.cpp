@@ -6,11 +6,22 @@
 
 using namespace blit;
 
-Rect pacmanAnims[16] = {
-  Rect(6,12,2,2),
-  Rect(4,12,2,2),
-  Rect(2,12,2,2),
-  Rect(0,12,2,2)
+Rect pacmanAnims[4] = {
+  Rect(6,10,2,2),
+  Rect(4,10,2,2),
+  Rect(2,10,2,2),
+  Rect(0,10,2,2),
+};
+
+Rect pacmanDeathAnim[8] = {
+  Rect(6,10,2,2),
+  Rect(4,10,2,2),
+  Rect(2,10,2,2),
+  Rect(0,10,2,2),
+  Rect(8,10,2,2),
+  Rect(10,10,2,2),
+  Rect(12,10,2,2),
+  Rect(14,10,2,2)
 };
 
 Pacman::Pacman() {
@@ -93,7 +104,7 @@ void Pacman::update(uint32_t time) {
   }
 
   if (level_get(tile_pt) == entityType::POWER) {
-    printf("Pacman::update ate power pill.\n");
+    //printf("Pacman::update ate power pill.\n");
     power = 1;
     score += 50;
     pills_eaten++;
@@ -159,7 +170,7 @@ void Pacman::render() {
   uint32_t t = SpriteTransform::NONE;
   switch(direction) {
     case Button::DPAD_RIGHT:
-      t = SpriteTransform::R180;
+      t = SpriteTransform::HORIZONTAL;
       break;
     case Button::DPAD_UP:
       t = SpriteTransform::R90;
@@ -170,4 +181,12 @@ void Pacman::render() {
   }
 
   screen.sprite(pacmanAnims[sprite], world_to_screen(location), t);
+}
+
+void Pacman::render_lives() {
+  screen.pen = Pen(255,255,255);
+  screen.text("Lives ", minimal_font, Point(30, screen_height - 12));
+  for(auto i = 0; i<player->lives; i++) {
+    screen.sprite(pacmanAnims[3], Point(60 + (i*16) + 2, screen_height - 18));
+  }
 }
