@@ -1,6 +1,7 @@
 
 NEXT
 
+- Render time on actual hardware is 40ms.  Eek.
 - You can escape the maze during the tunnel warp.
 - No ghost reversal on state change or house exit.
 - Sound

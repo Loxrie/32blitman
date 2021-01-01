@@ -91,6 +91,7 @@ float deg2rad(float a) {
 bool game_start;
 uint32_t high_score;
 uint32_t go_score;
+uint32_t ms_update;
 
 ///////////////////////////////////////////////////////////////////////////
 //
@@ -284,6 +285,7 @@ void render(uint32_t t) {
   screen.pen = Pen(0, 0, 0);
   screen.clear();
 
+  uint32_t ms_start = now();
   // Draw maze.
   level->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), level_line_interrupt_callback);
 
@@ -294,6 +296,7 @@ void render(uint32_t t) {
   for (auto ghost : ghosts) {
     ghost->render();
   }
+  uint32_t ms_end = now();
 
   // Draw the header bar
   screen.pen = Pen(0, 0, 1);
@@ -314,6 +317,10 @@ void render(uint32_t t) {
   screen.pen = Pen(0, 0, 1);
   screen.rectangle(Rect(0, screen_height - 20, screen_width, 20));
   player->render_lives();
+
+  screen.pen = Pen(20, 255, 20);
+  std::string fms = "U: " + std::to_string(ms_update) + " R: " + std::to_string(ms_end - ms_start);
+  screen.text(fms, minimal_font, Point(screen_width - 60, screen_height - 16));
 
   screen.pen = Pen(0, 0, 0);
 }
@@ -368,4 +375,6 @@ void update(uint32_t t) {
     }
   }
   update_camera();
+
+  ms_update = now() - t;
 }
