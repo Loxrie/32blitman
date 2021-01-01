@@ -277,6 +277,7 @@ void game_over() {
   for(auto x = 0; x < level_width * level_height; x++){
     pill_data[x] = asset_pills[x];
   }
+  player->lives = 4;
   player->init(level_data[0]);
 }
 
