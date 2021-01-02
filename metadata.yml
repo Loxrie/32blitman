@@ -1,8 +1,8 @@
 title: Pacman
-description: A completely inacurate pacman clone.
+description: A vaguely accurate pacman clone.
 author: diziet
 splash:
-  file: ./no-image.png
+  file: ./32blitman.png
 icon:
-  file: ./no-icon.png
+  file: ./32blitman-icon.png
 version: v1.0.0

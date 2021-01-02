@@ -1,8 +1,5 @@
 assets.cpp:
   prefix: asset_
-  ./assets/level.png:
-    name: level
-    transparent: 0,0,0
   ./assets/leveltng.png:
     name: leveltng
     transparent: 0,0,0
@@ -11,5 +8,3 @@ assets.cpp:
     transparent: 0,0,0
   assets/level*.tmx:
     name:
-  assets/pills.tmx:
-    name: pills

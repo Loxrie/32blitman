@@ -43,7 +43,7 @@ void theres_a_ghost_about_this_house(Timer &timer) {
   bool inky_at_home = (inky->state & resting_mask) == ghostState::RESTING;
   bool clyde_at_home = (clyde->state & resting_mask) == ghostState::RESTING;
 
-  if (current_level < 2 && lives_not_lost_this_level) {
+  if (lives_not_lost_this_level) {
     // Pinky leaves immediately.
     if (pinky_at_home) {
       pinky->set_state(ghostState::LEAVING);
@@ -61,15 +61,15 @@ void theres_a_ghost_about_this_house(Timer &timer) {
   
   // First ghost leaves at 7, then 17, then 32.
   if (pinky_at_home && pills_eaten_this_life > 6) {
-    printf("Life lost pinky leaving now %d.\n", pills_eaten_this_life);
+    // printf("Life lost pinky leaving now %d.\n", pills_eaten_this_life);
     pinky->set_state(ghostState::LEAVING);
   }
   if (inky_at_home && pills_eaten_this_life > 16) {
-    printf("Life lost inky leaving now %d.\n", pills_eaten_this_life);
+    // printf("Life lost inky leaving now %d.\n", pills_eaten_this_life);
     inky->set_state(ghostState::LEAVING);
   }
   if (clyde_at_home && pills_eaten_this_life > 31) {
-    printf("Life lost clyde leaving now %d.\n", pills_eaten_this_life);
+    // printf("Life lost clyde leaving now %d.\n", pills_eaten_this_life);
     clyde->set_state(ghostState::LEAVING);
   }
 }
@@ -178,8 +178,6 @@ void init() {
     level_tiles[x] = asset_assets_leveltng_tmx[x];
   }
   level = new TileMap(level_tiles, nullptr, Size(level_width, level_height), level_sprites);
-  std::vector<uint8_t> mazeVector(asset_assets_leveltng_tmx_length);
-  mazeVector.assign(&asset_assets_leveltng_tmx[0], &asset_assets_leveltng_tmx[asset_assets_level1_tmx_length]);
 }
 
 // Line-interrupt callback for level->draw that applies our camera transformation
@@ -235,17 +233,15 @@ void next_level() {
 
   reset_level();
 
-  
   // Level 2
   if (current_level == 1) {
-    inky->state |= ghostState::LEAVING;
+    inky_dot_limit = 0;
     clyde_dot_limit = 80;
   }
   // Level 3
   if (current_level >= 2) {
-    pinky->state |= ghostState::LEAVING;
-    inky->state |= ghostState::LEAVING;
-    clyde->state |= ghostState::LEAVING;
+    inky_dot_limit = 0;
+    clyde_dot_limit = 0;
   }
 }
 
