@@ -174,10 +174,6 @@ void Pacman::render() {
   }
 
   screen.sprite(pacmanAnims[sprite], world_to_screen(location), t);
-  screen.pen = Pen(255,0,0);
-  Mat3 bob = Mat3(camera);
-  bob.inverse();
-  screen.pixel(location * bob);
 }
 
 void Pacman::render_lives() {
