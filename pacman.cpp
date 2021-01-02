@@ -96,12 +96,11 @@ void Pacman::update(uint32_t time) {
   }
 
   if (flags & entityType::POWER) {
-
     power = 1;
     score += 50;
     pills_eaten++;
     pills_eaten_this_life++;
-    level_set(tile_pt, 0);
+    level_set(tile_pt, (flags & entityType::JUNCTION) ? 44 : 0);
     start_power_timer();
     Ghosts::set_state(ghostState::FRIGHTENED);
   }
