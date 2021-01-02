@@ -16,8 +16,6 @@ extern blit::Timer power_timer;
 extern uint8_t *level_tiles;
 extern uint8_t current_level;
 
-extern blit::Map map;
-
 extern Pacman *player;
 extern Blinky *blinky;
 extern Pinky *pinky;

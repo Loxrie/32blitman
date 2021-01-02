@@ -259,7 +259,7 @@ void Ghost::update(uint32_t time) {
       location = Vec2(4 * 8, 18 * 8);
     }
     tile_pt = tile(location);
-    flags = map.get_flags(tile_pt);
+    flags = level_get(tile_pt);
   }
 
   

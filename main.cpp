@@ -9,16 +9,12 @@ using namespace blit;
 
 Mat3 camera;
 
-// uint8_t *pill_data;
 uint8_t *level_tiles;
 uint8_t current_level;
 
 TileMap *level;
-// TileMap *pills;
 
 SpriteSheet *level_sprites;
-
-Map map(blit::Rect(0, 0, level_height, level_height));
 
 bool bodge_ghost_animation = false;
 
@@ -137,28 +133,12 @@ void init() {
   level = new TileMap(level_tiles, nullptr, Size(level_width, level_height), level_sprites);
   std::vector<uint8_t> mazeVector(asset_assets_leveltng_tmx_length);
   mazeVector.assign(&asset_assets_leveltng_tmx[0], &asset_assets_leveltng_tmx[asset_assets_level1_tmx_length]);
-
-  map.add_layer("background", mazeVector);
-  // Set walls.
-  map.layers["background"].add_flags({
-    1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
-    17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
-    33,34,35,36,37,38,39,40,41,42
-  }, entityType::WALL);
-  map.layers["background"].add_flags({ 44, 45 }, entityType::JUNCTION);
-  map.layers["background"].add_flags(42, entityType::TUNNEL);
-  map.layers["background"].add_flags(43, entityType::PORTAL);
 }
 
 // Line-interrupt callback for level->draw that applies our camera transformation
 // This can be expanded to add effects like camera shake, wavy dream-like stuff, all the fun!
 std::function<Mat3(uint8_t)> level_line_interrupt_callback = [](uint8_t y) -> Mat3 {
   return camera;
-};
-
-// Nasty hack to offset pills from tiles to appear at the center of the maze paths.
-std::function<Mat3(uint8_t)> pill_line_interrupt_callback = [](uint8_t y) -> Mat3 {
-  return camera * Mat3::translation(Vec2(-4, -4));
 };
 
 void update_camera() {
@@ -275,11 +255,8 @@ void render(uint32_t t) {
   screen.clear();
 
   uint32_t ms_start = now();
-  // Draw maze.
+  // Draw maze and pills.
   level->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), level_line_interrupt_callback);
-
-  // LOL i swear this is faster than drawing the layer before.
-  // pills->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), pill_line_interrupt_callback);
   
   player->render();
   for (auto ghost : ghosts) {
