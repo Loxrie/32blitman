@@ -154,7 +154,10 @@ uint32_t Ghost::random_direction() {
 }
 
 bool Ghost::edible() {
-  return ((state & ghostState::EATEN) == 0 && state & ghostState::FRIGHTENED && player->is_pilled_up());
+  return (
+    (state & (ghostState::EATEN | ghostState::FRIGHTENED)) == ghostState::FRIGHTENED
+    && player->is_pilled_up()
+  );
 }
 
 bool Ghost::eaten() {
@@ -226,7 +229,7 @@ void Ghost::update(uint32_t time) {
   float c_speed = speed;
 
   // Only do special ghost house stuff if the ghost is around the house.
-  if ((state & house_flags) > 0) {
+  if ((state & house_flags) > 0 || location == ghost_house_entrance) {
     handle_house();  
   }
   
@@ -235,6 +238,8 @@ void Ghost::update(uint32_t time) {
     c_speed = tunnel_speed;
   } else if (state & ghostState::FRIGHTENED) {
     c_speed = fright_speed;
+  } else if (state & ghostState::EATEN) {
+    c_speed = 1.0f;
   }
 
   // We are in a PORTAL.
@@ -248,8 +253,6 @@ void Ghost::update(uint32_t time) {
     flags = level_get(tile_pt);
   }
 
-  
-  
   if (location.x % 8 > 0 
       || location.y % 8 > 0
       || (state & house_flags) > 0 ) 

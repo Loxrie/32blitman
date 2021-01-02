@@ -180,7 +180,7 @@ void Pinky::init(LevelData ld) {
   tunnel_speed = ld.ghost_tunnel_speed;
   fright_speed = ld.ghost_fright_speed;
 
-  state = ghostState::SCATTER | ghostState::RESTING | ghostState::LEAVING;
+  state = ghostState::SCATTER | ghostState::RESTING;
 }
 
 Pinky::Pinky() {

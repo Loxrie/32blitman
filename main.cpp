@@ -28,7 +28,51 @@ Inky *inky;
 Clyde *clyde;
 
 uint32_t pills_eaten;
+
 uint32_t pills_eaten_this_life;
+
+Timer house_timer;
+
+bool lives_not_lost_this_level = true;
+uint8_t inky_dot_limit = 30;
+uint8_t clyde_dot_limit = 90;
+
+void theres_a_ghost_about_this_house(Timer &timer) {
+  uint8_t resting_mask = (ghostState::RESTING | ghostState::LEAVING);
+  bool pinky_at_home = (pinky->state & resting_mask) == ghostState::RESTING;
+  bool inky_at_home = (inky->state & resting_mask) == ghostState::RESTING;
+  bool clyde_at_home = (clyde->state & resting_mask) == ghostState::RESTING;
+
+  if (current_level < 2 && lives_not_lost_this_level) {
+    // Pinky leaves immediately.
+    if (pinky_at_home) {
+      pinky->set_state(ghostState::LEAVING);
+    }
+    if (inky_at_home && pills_eaten_this_life >= inky_dot_limit) 
+    {
+      inky->set_state(ghostState::LEAVING);
+    }
+    if (clyde_at_home && pills_eaten_this_life >= clyde_dot_limit) 
+    {
+      clyde->set_state(ghostState::LEAVING);
+    }
+    return;
+  } 
+  
+  // First ghost leaves at 7, then 17, then 32.
+  if (pinky_at_home && pills_eaten_this_life > 6) {
+    printf("Life lost pinky leaving now %d.\n", pills_eaten_this_life);
+    pinky->set_state(ghostState::LEAVING);
+  }
+  if (inky_at_home && pills_eaten_this_life > 16) {
+    printf("Life lost inky leaving now %d.\n", pills_eaten_this_life);
+    inky->set_state(ghostState::LEAVING);
+  }
+  if (clyde_at_home && pills_eaten_this_life > 31) {
+    printf("Life lost clyde leaving now %d.\n", pills_eaten_this_life);
+    clyde->set_state(ghostState::LEAVING);
+  }
+}
 
 void power_timer_callback(Timer &timer) {
 
@@ -108,7 +152,10 @@ void init() {
   level_sprites = SpriteSheet::load(asset_leveltng);
   
   power_timer.init(power_timer_callback, 1000, 1);
-  
+
+  house_timer.init(theres_a_ghost_about_this_house, 10, -1);
+  house_timer.start();
+
   // Animate at 20fps. Though we bodge ghost animation to 10fps.
   // Note this is animation not movement.
   timer_level_animate.init(animate_level, 50, -1);
@@ -162,12 +209,6 @@ Point world_to_screen(Point point) {
   return Point(screen_vector);
 }
 
-Point screen_to_world(Point point) {
-  Vec2 screen_vector = Vec2(point.x,point.y);
-  Vec2 world_vector = screen_vector * camera;
-  return Point(world_vector);
-}
-
 /**
  * Return the tile at the center of the sprite.
  * Given sprite ref is top left of 16x16 sprite.
@@ -177,7 +218,7 @@ Point tile(Point point) {
 }
 
 void next_level() {
-
+  lives_not_lost_this_level = true;
   current_level++;
 
   for(auto x = 0; x < level_width * level_height; x++){
@@ -193,6 +234,19 @@ void next_level() {
   Ghosts::move_reset_and_pause();
 
   reset_level();
+
+  
+  // Level 2
+  if (current_level == 1) {
+    inky->state |= ghostState::LEAVING;
+    clyde_dot_limit = 80;
+  }
+  // Level 3
+  if (current_level >= 2) {
+    pinky->state |= ghostState::LEAVING;
+    inky->state |= ghostState::LEAVING;
+    clyde->state |= ghostState::LEAVING;
+  }
 }
 
 void pause_game() {
@@ -274,9 +328,12 @@ void render(uint32_t t) {
   if (player->lives == 0) {
     screen.pen = Pen(0, 0, 1);
     screen.rectangle(Rect(0, (screen_height/2) - 20, screen_width, 40));
-    screen.pen = Pen(255, 255, 255);
+    screen.pen = Pen(255, 255, 0);
     screen.text(" GAME OVER ", fat_font, Point(screen_width/2 - 20, screen_height/2 - 15));
     screen.text(" Your score " + std::to_string(go_score), minimal_font, Point(screen_width/2 - 20, screen_height/2 + 10));
+  } else if (!game_start) {
+    screen.pen = Pen(255,255,0);
+    screen.text("READY!", fat_font, Point(150,108));
   }
   
   // Draw footer bar
@@ -299,26 +356,14 @@ void render(uint32_t t) {
 // amount if milliseconds elapsed since the start of your game
 //
 void update(uint32_t t) {
-  if (power_timer.is_running()) {
-
-  }
   static uint32_t last_animation = t;
   static uint32_t button_debounce = t;
   if (game_start && player->lives > 0) {
     player->update(t);
 
-    // DOH SHOUTY FIX, move out to timer?
-    // We could move a lot of generic game state to a timer, this, house management etc.?
-    if (inky->state & ghostState::RESTING && (inky->state & ghostState::LEAVING) == 0 && pills_eaten_this_life >= 30) {
-      inky->set_state(ghostState::LEAVING);
-    }
-
-    if (clyde->state & ghostState::RESTING && (clyde->state & ghostState::LEAVING) == 0 && pills_eaten_this_life >= 60) {
-      clyde->set_state(ghostState::LEAVING);
-    }
-
     bool pacman_eaten = Ghosts::update(t);
     if (pacman_eaten) {
+      lives_not_lost_this_level = false;
       if (--player->lives == 0) {
         go_score = player->score;
         high_score = (player->score > high_score) ? player->score : high_score;

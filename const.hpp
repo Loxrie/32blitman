@@ -184,7 +184,7 @@ struct LevelData {
   uint32_t fright_time; // in ms.
   // ms of warnings before ghosts revert.  Was "no. of flashes" og
   // We animate roughly every 100ms for ghosts, so 1000 should be 5 complete flashes.
-  uint32_t fright_warning_time; 
+  uint32_t fright_warning_time;
 };
 
 static std::vector<LevelData> level_data = {
