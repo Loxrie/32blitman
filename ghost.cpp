@@ -121,19 +121,21 @@ uint32_t Ghost::direction_to_target(Point target) {
       continue;
     }
 
+    // There is a direction preference for ghosts, UP > LEFT > DOWN > RIGHT.
+    // SO if we reverse that order and there's a tie our preferred direction should win.
     Vec2 vector;
     switch (exit) {
-      case Button::DPAD_LEFT:
-        vector = Vec2(-1,0);
-        break;
       case Button::DPAD_RIGHT:
         vector = Vec2(1,0);
         break;
-      case Button::DPAD_UP:
-        vector = Vec2(0,-1);
-        break;
       case Button::DPAD_DOWN:
         vector = Vec2(0,1);
+        break;
+      case Button::DPAD_LEFT:
+        vector = Vec2(-1,0);
+        break;
+      case Button::DPAD_UP:
+        vector = Vec2(0,-1);
         break;
     }
     Point source_tile = Point(decision_tile.x + vector.x, decision_tile.y + vector.y);
@@ -150,15 +152,22 @@ uint32_t Ghost::direction_to_target(Point target) {
 uint32_t Ghost::random_direction() {
   int bloop = rand();
   uint32_t inverted_direction = invertDirection();
-  uint32_t random_direction = 0;
   Point stuck_at = tile(location);
   uint32_t index = stuck_at.y * level_width + stuck_at.x;
   auto search = mapOfJunctions.find(index);
   if (search == mapOfJunctions.end()) {
+    printf("%s::random_direction missing junction map %d.\n", name.c_str(), index);
     return 0;
   }
 
-  return search->second[bloop % search->second.size()];
+  std::vector<uint32_t> remove_the_way_we_came;
+  for (uint32_t d: search->second) {
+    if (d != inverted_direction) {
+      remove_the_way_we_came.push_back(d);
+    }
+  }
+  uint32_t rd = remove_the_way_we_came[bloop % remove_the_way_we_came.size()];
+  return rd;
 }
 
 bool Ghost::edible() {
