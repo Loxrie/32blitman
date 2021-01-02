@@ -1,3 +1,8 @@
+02/01/21
+
+- Ghost house changes, more like arcade game.  Up/Down rather than Left/Right.  Speed is slower.
+- Major rewrite.  Having level and pills as separate sprite maps killed render time.
+
 01/01/21
 
 - Added lives counter.

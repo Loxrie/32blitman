@@ -9,17 +9,11 @@ Ghost::Ghost() {
   direction = Button::DPAD_LEFT;
   desired_direction = direction;
 
-  scatter_target = Point( (9 * 8), 1 * 8);
+  scatter_target = Point( 9 * 8, 1 * 8);
   speed = 0.0f;
   last_update = 0;
   
   sprite = 0;
-  
-  collision_detection = [this](Point tile_pt) -> void {
-    if(map.has_flag(tile_pt, entityType::WALL)) {
-        this->moving_to = entityType::WALL;
-    }
-  };
 }
 
 // This is called once every 100ms or so.
@@ -72,7 +66,7 @@ uint32_t Ghost::invertDirection() {
 }
 
 Rect Ghost::center(Point pos) {
-  return Rect(pos.x + (size.w/4), pos.y + (size.h/4), size.h/2, size.w/2);
+  return Rect(pos.x + 4, pos.y + 4,size.h/2, size.w/2);
 }
 
 uint32_t Ghost::direction_to_target(Point target) {
@@ -87,6 +81,7 @@ uint32_t Ghost::direction_to_target(Point target) {
    */
 
   uint32_t where_will_we_go = 0;
+  bool frightened = (state & ghostState::FRIGHTENED);
   Point decision_tile = tile(location);
   target_tile = tile(target);
 
@@ -104,6 +99,9 @@ uint32_t Ghost::direction_to_target(Point target) {
       target_tile.y += target_offset;
       break;
   }
+
+  // In chase state these indexes can't move up.
+  // 978, 981, 1746, 1749
   
   uint32_t inverted_direction = invertDirection();
   uint32_t index = decision_tile.y * level_width + decision_tile.x;
@@ -119,19 +117,23 @@ uint32_t Ghost::direction_to_target(Point target) {
       continue;
     }
 
+    if (!frightened && exit == Button::DPAD_UP && (index == 978 || index == 981 || index == 1746 || index == 1749)) {
+      continue;
+    }
+
     Vec2 vector;
     switch (exit) {
       case Button::DPAD_LEFT:
-        vector = Vec2(-2,0);
+        vector = Vec2(-1,0);
         break;
       case Button::DPAD_RIGHT:
-        vector = Vec2(2,0);
+        vector = Vec2(1,0);
         break;
       case Button::DPAD_UP:
-        vector = Vec2(0,-2);
+        vector = Vec2(0,-1);
         break;
       case Button::DPAD_DOWN:
-        vector = Vec2(0,2);
+        vector = Vec2(0,1);
         break;
     }
     Point source_tile = Point(decision_tile.x + vector.x, decision_tile.y + vector.y);
@@ -174,64 +176,67 @@ void Ghost::set_move_state(ghostState s) {
 
 void Ghost::set_state(uint8_t s) {
   if ((state & ghostState::FRIGHTENED) == 0 && (s == ghostState::FRIGHTENED)) {
-    //printf("%s::set_state pausing move cycle, entering frightened.\n", name.c_str());
     move_cycle_timer.pause();
   }
   state |= s;
 }
 
 void Ghost::clear_state(uint8_t s) {
-  //printf("%s::clear_state current state %d, flags to clear %d, move cycle %d.\n", name.c_str(), state, s, move_cycle_timer.state);
   if ((state & ghostState::FRIGHTENED)
       && (s & ghostState::FRIGHTENED)
       && move_cycle_timer.is_paused())
   {
-    //printf("%s::clear_state resuming move cycle, leaving frightened.\n", name.c_str());
     move_cycle_timer.start();
   }
   state &= ~ s;
 }
 
 void Ghost::handle_house() {
-  if (state & ghostState::EATEN && location == ghost_house_door) {
+  if (state & ghostState::EATEN && location == ghost_house_entrance) {
     direction = DPAD_DOWN;
     set_state(ghostState::ARRIVING);
   }
 
-  if (state & ghostState::LEAVING && location == ghost_house) {
-    direction = Button::DPAD_UP;
-    clear_state(ghostState::RESTING);
+  if (state & ghostState::LEAVING) {
+    if (location == ghost_house_exit) {
+      direction = Button::DPAD_UP;
+      clear_state(ghostState::RESTING);
+    } else if (location == ghost_house_exit_l) {
+      direction = Button::DPAD_RIGHT;
+    } else if (location == ghost_house_exit_r) {
+      direction = Button::DPAD_LEFT;
+    }
   }
 
-  if (state & ghostState::LEAVING && location == ghost_house_door) {
+  if (state & ghostState::LEAVING && location == ghost_house_entrance) {
     direction = Button::DPAD_LEFT;
     clear_state(ghostState::LEAVING);
   }
 
-  if (state & ghostState::EATEN && location == ghost_house) {
-    direction = Button::DPAD_LEFT;
+  if (state & ghostState::EATEN && location == ghost_house_exit) {
     clear_state((ghostState::EATEN | ghostState::ARRIVING | ghostState::FRIGHTENED));
     set_state(ghostState::LEAVING);
-    return;
   }
   
-  if (state & ghostState::RESTING) {
-    if (location == ghost_house_left) {
-      direction = Button::DPAD_RIGHT;
-    } else if (location == ghost_house_right) {
-      direction = Button::DPAD_LEFT;
+  if (state & ghostState::RESTING && ghost_house.intersects(Rect(location, Size(8,8)))) {
+    if (location.y == 17 * 8 + 4) {
+      direction = Button::DPAD_DOWN;
+    } else if (location.y == 18 * 8 + 4) {
+      direction = Button::DPAD_UP;
     }
   }
 }
 
 void Ghost::update(uint32_t time) {
   Point tile_pt = tile(location);
-  uint32_t flags = map.get_flags(tile_pt);
+  uint32_t flags = level_get(tile_pt);
 
   float c_speed = speed;
 
+  handle_house();
+  
   // Adjust speed for being in WARP zone.
-  if (flags & entityType::WARP) {
+  if (flags & entityType::TUNNEL || state & ghostState::RESTING || state & ghostState::ARRIVING || state & ghostState::LEAVING) {
     c_speed = tunnel_speed;
   } else if (state & ghostState::FRIGHTENED) {
     c_speed = fright_speed;
@@ -248,10 +253,10 @@ void Ghost::update(uint32_t time) {
     flags = map.get_flags(tile_pt);
   }
 
-  handle_house();
-
+  
+  
   if (location.x % 8 > 0 
-      || location.y % 8 > 0 
+      || location.y % 8 > 0
       || state & ghostState::ARRIVING 
       || state & ghostState::LEAVING 
       || state & ghostState::RESTING) 
@@ -280,81 +285,24 @@ void Ghost::update(uint32_t time) {
   }
 
   // Setup
-  moving_to = entityType::NOTHING;
+  moving_to = entityType::WALL;
   Rect bounds_lr;
 
-  Vec2 target = player->location;
+  Point target = player->location;
   // If we're at a junction point choose a new direction.
   bool junction = flags & entityType::JUNCTION;
   bool chase = (state & ghostState::CHASE) && (state & ghostState::FRIGHTENED) == 0;
   bool scatter = (state & ghostState::SCATTER) && (state & ghostState::FRIGHTENED) == 0;
   if (junction && (state & ghostState::EATEN)) {
-    desired_direction = direction_to_target(ghost_house_door);
+    direction = direction_to_target(ghost_house_entrance);
   } else if (junction && scatter) {
-    desired_direction = direction_to_target(scatter_target);
+    direction = direction_to_target(scatter_target);
   } else if (junction && chase) {
-    desired_direction = direction_to_target(target);
+    direction = direction_to_target(target);
   } else if (junction && (state & ghostState::FRIGHTENED)) {
-    desired_direction = random_direction();
+    direction = random_direction();
   }
 
-  // If our desired path doesn't match our current one try to change.
-  if (desired_direction != direction) {
-    auto dirSearch = dirToVector.find(desired_direction);
-    if (dirSearch == dirToVector.end()) {
-      return;
-    }
-    Vec2 desired_movement = dirSearch->second;
-    bounds_lr = center(location + desired_movement);
-    map.tiles_in_rect(bounds_lr, collision_detection);
-    if (moving_to == entityType::NOTHING) {
-      direction = desired_direction;
-    }
-  } else {
-    // Otherwise try carrying on.
-    moving_to = entityType::NOTHING;
-    auto dirSearch = dirToVector.find(direction);
-    if (dirSearch == dirToVector.end()) {
-      return;
-    }
-    Vec2 movement = dirSearch->second;
-    bounds_lr = center(location + movement);
-    map.tiles_in_rect(bounds_lr, collision_detection);
-  }
-  
-  // Still can't move, try turning a corner.
-  if (moving_to == entityType::WALL && !(flags & entityType::JUNCTION)) {
-    uint32_t inverted_direction = invertDirection();
-    Point stuck_at = tile(location);
-    uint32_t index = stuck_at.y * level_width + stuck_at.x;
-    auto search = mapOfJunctions.find(index);
-    if (search == mapOfJunctions.end()) {
-      return;
-    }
-
-    for (uint32_t corner : search->second) {
-      if (corner == inverted_direction) {
-        continue;
-      }
-      auto dirSearch = dirToVector.find(corner);
-      if (dirSearch == dirToVector.end()) {
-        return;
-      }
-      Vec2 vector = dirSearch->second;
-
-      moving_to = entityType::NOTHING;
-
-      map.tiles_in_rect(center(location + vector), collision_detection);
-      if (moving_to == entityType::NOTHING) {
-        desired_direction = corner;
-        break;
-      }
-    }
-    // We haven't reached the corner yet, we've just made a choice.
-    return;
-  }
-
-  // Set Movement for current direction.
   switch (direction) {
     case Button::DPAD_LEFT:
       location.x -= 1.0f;

@@ -11,10 +11,11 @@ constexpr uint16_t level_height = 64;
 
 const uint32_t pills_per_level = 244;
 
-const blit::Point ghost_house_door = blit::Point((19 * 8) + 4, 15 * 8);
-const blit::Point ghost_house = blit::Point((19 * 8) + 4, 18 * 8);
-const blit::Point ghost_house_left = blit::Point(18 * 8, 18 * 8);
-const blit::Point ghost_house_right = blit::Point(21 * 8, 18 * 8);
+const blit::Point ghost_house_entrance = blit::Point(19 * 8 + 4, 15 * 8);
+const blit::Point ghost_house_exit = blit::Point(19 * 8 + 4, 18 * 8);
+const blit::Point ghost_house_exit_l = blit::Point(17 * 8 + 4, 18 * 8);
+const blit::Point ghost_house_exit_r = blit::Point(21 * 8 + 4, 18 * 8);
+const blit::Rect ghost_house = blit::Rect(17 * 8, 17 * 8, 6 * 8, 3 * 8);
 
 static std::map<uint32_t, blit::Vec2> dirToVector = {
   { blit::Button::DPAD_LEFT, blit::Vec2(-8, 0) },
@@ -47,8 +48,8 @@ static std::map<uint32_t, std::vector<uint32_t>> mapOfJunctions = {
   { 795, { blit::Button::DPAD_RIGHT,  blit::Button::DPAD_DOWN,  blit::Button::DPAD_UP } },
   { 800, { blit::Button::DPAD_LEFT,  blit::Button::DPAD_UP } },
   { 975, { blit::Button::DPAD_RIGHT,  blit::Button::DPAD_DOWN } },
-  { 978, { blit::Button::DPAD_LEFT,  blit::Button::DPAD_RIGHT } },
-  { 981, { blit::Button::DPAD_LEFT,  blit::Button::DPAD_RIGHT } },
+  { 978, { blit::Button::DPAD_LEFT,  blit::Button::DPAD_RIGHT, blit::Button::DPAD_UP } },
+  { 981, { blit::Button::DPAD_LEFT,  blit::Button::DPAD_RIGHT, blit::Button::DPAD_UP } },
   { 984, { blit::Button::DPAD_LEFT,  blit::Button::DPAD_DOWN } },
   { 1164, { blit::Button::DPAD_LEFT,  blit::Button::DPAD_RIGHT,  blit::Button::DPAD_DOWN,  blit::Button::DPAD_UP } },
   { 1167, { blit::Button::DPAD_LEFT,  blit::Button::DPAD_DOWN,  blit::Button::DPAD_UP } },
@@ -94,10 +95,62 @@ enum entityType {
   NOTHING = 0,
   WALL = 1,
   JUNCTION = 2, // Normal junction. For Ghosts.
-  WARP = 4,
+  TUNNEL = 4,
   PORTAL = 8,
-  PILL = 238,
-  POWER = 239
+  PILL = 16,
+  POWER = 32
+};
+
+const uint8_t mappings[49] = {
+  entityType::NOTHING,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::WALL,
+  entityType::TUNNEL,
+  entityType::PORTAL,
+  entityType::JUNCTION,
+  entityType::JUNCTION | entityType::PILL,
+  entityType::PILL,
+  entityType::JUNCTION |entityType::POWER,
+  entityType::POWER
 };
 
 enum ghostState {

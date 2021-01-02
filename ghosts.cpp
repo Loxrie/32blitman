@@ -41,18 +41,18 @@ uint8_t clyde_cycle_index = 0;
 
 void manage_ghost_move_state(Timer &t, Ghost *g, uint8_t *cycle_index) {
   ghostState nextState = cycleStates[*cycle_index];
-  //printf("%s::manage_ghost_move_state cycle %d setting state %d.\n", g->name.c_str(),  *cycle_index, nextState);
+
   g->set_move_state(nextState);
   if (*cycle_index < cycleTimes.size()) {
     int8_t next_cycle_time = cycleTimes[*cycle_index];
     if (next_cycle_time != -1) {
       // Setup next ghost cycle.
-      //printf("%s::manage_ghost_move_state timer pre  dur - %d started - %d loops - %d state - %d\n", g->name.c_str(), g->move_cycle_timer.duration, g->move_cycle_timer.started, g->move_cycle_timer.loops, g->move_cycle_timer.state);
+
       g->move_cycle_timer.duration = cycleTimes[*cycle_index] * 1000;
-      //printf("%s::manage_ghost_move_state timer post dur - %d started - %d loops - %d state - %d\n", g->name.c_str(), g->move_cycle_timer.duration, g->move_cycle_timer.started, g->move_cycle_timer.loops, g->move_cycle_timer.state);
+
       (*cycle_index)++;
     } else {
-      //printf("%s::manage_ghost_move_state stopped.\n", g->name.c_str());
+
       g->move_cycle_timer.stop();
     }
   }
@@ -83,7 +83,7 @@ void Ghosts::init(uint8_t current_level) {
 
 void Ghosts::move_start() {
   for (auto ghost : ghosts) {
-    //printf("Ghosts::move_start Starting move cycle timer for %s\n", ghost->name.c_str());
+
     ghost->move_cycle_timer.start();
   }
 }
@@ -98,7 +98,7 @@ void Ghosts::move_resume() {
   for (auto ghost : ghosts) {
     // Don't resume move cycle timer unless it is paused.
     if ((ghost->state & ghostState::FRIGHTENED) == 0) {
-      //printf("Ghosts::resume_move %s move resume.\n", ghost->name.c_str());
+
       ghost->move_cycle_timer.start();
     }
   }
@@ -120,7 +120,7 @@ void Ghosts::set_state(uint8_t s) {
 
 void Ghosts::clear_state(uint8_t s) {
   for (auto ghost: ghosts) {
-    //printf("Ghosts::clear_state %s state %d\n", ghost->name.c_str(), ghost->state);
+
     ghost->clear_state(s);
   }
 }
@@ -150,7 +150,7 @@ void Blinky::init(LevelData ld) {
   // When power pill running low sub this in for animation 9.
   //   ghostAnims[9] = Rect(10,12,2,2);
   target_offset = 0;
-  location = Point((19 * 8) + 4, 15 * 8);
+  location = Point(19 * 8 + 4, 15 * 8);
   direction = Button::DPAD_LEFT;
   desired_direction = direction;
 
@@ -172,8 +172,8 @@ Blinky::Blinky() {
 
 void Pinky::init(LevelData ld) {
   target_offset = 4;
-  location = Point( (18 * 8), 18 * 8);
-  direction = Button::DPAD_LEFT;
+  location = Point( 19 * 8 + 4, 18 * 8);
+  direction = Button::DPAD_UP;
   desired_direction = direction;
 
   speed = ld.ghost_speed;
@@ -187,15 +187,15 @@ Pinky::Pinky() {
   name = "Pinky";
   anim_offset = 8;
   sprite = anim_offset;
-  scatter_target = Point( (9 * 8), 1 * 8);
+  scatter_target = Point( 9 * 8, 1 * 8);
   move_cycle_timer.init(pinky_cycle_timer_callback, 7000, -1);
   init(level_data[0]);
 }
 
 void Inky::init(LevelData ld) {
   target_offset = 2;
-  location = Point( (19 * 8) + 4, 18 * 8);
-  direction = Button::DPAD_LEFT;
+  location = Point( 17 * 8 + 4, 18 * 8);
+  direction = Button::DPAD_UP;
   desired_direction = direction;
 
   speed = ld.ghost_speed;
@@ -217,8 +217,8 @@ Inky::Inky() {
 void Clyde::init(LevelData ld) {  
   // Wrong but it'll do for now.
   target_offset = -4;
-  location = Point( (21 * 8), 18 * 8);
-  direction = Button::DPAD_LEFT;
+  location = Point( 21 * 8 + 4, 18 * 8);
+  direction = Button::DPAD_UP;
   desired_direction = direction;
   
   speed = ld.ghost_speed;

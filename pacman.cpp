@@ -30,18 +30,14 @@ Pacman::Pacman() {
   lives = 4;
   score = 0;
 
-  collision_detection = [this](Point tile_pt) -> void {
-    if(map.has_flag(tile_pt, entityType::WALL)) {
-      this->moving_to = entityType::WALL;
-    }
-  };
   init(level_data[0]);
 }
 
 void Pacman::init(LevelData ld) {
-  location = Vec2( (19 * 8) + 4, 27 * 8);
-  movement = Vec2(0,0);
-  direction = 0;
+  location = Point( 19 * 8 + 4, 27 * 8);
+  movement = Vec2(-1, 0);
+  direction = 1;
+  desired_direction = direction;
 
   speed = ld.pacman_speed;
   dots_speed = ld.pacman_dots_speed;
@@ -50,8 +46,6 @@ void Pacman::init(LevelData ld) {
 
   power = 0;
   sprite = 0;
-  desired_movement = movement;
-  desired_direction = direction;
 }
 
 bool Pacman::is_pilled_up() {
@@ -83,33 +77,31 @@ void Pacman::animate() {
 
 void Pacman::update(uint32_t time) {
   static uint32_t last_update = 0;
+  uint8_t moving_to = entityType::WALL;
   float c_speed = speed;
-  moving_to = entityType::NOTHING;
-  Rect bounds_lr;
 
   Point tile_pt = tile(location);
-  uint32_t flags = map.get_flags(tile_pt);
-
+  uint8_t flags = level_get(tile_pt);
   if (power)
     c_speed = fright_speed;
 
-  if (level_get(tile_pt) == entityType::PILL) {
+  if (flags & entityType::PILL) {
     c_speed = dots_speed;
     if (power)
       c_speed = fright_dots_speed;
     score += 10;
     pills_eaten++;
     pills_eaten_this_life++;
-    level_set(tile_pt, entityType::NOTHING);
+    level_set(tile_pt, (flags & entityType::JUNCTION) ? 44 : 0);
   }
 
-  if (level_get(tile_pt) == entityType::POWER) {
-    //printf("Pacman::update ate power pill.\n");
+  if (flags & entityType::POWER) {
+
     power = 1;
     score += 50;
     pills_eaten++;
     pills_eaten_this_life++;
-    level_set(tile_pt, entityType::NOTHING);
+    level_set(tile_pt, 0);
     start_power_timer();
     Ghosts::set_state(ghostState::FRIGHTENED);
   }
@@ -126,48 +118,50 @@ void Pacman::update(uint32_t time) {
   if (buttons.state > 0) {
     // Possible new direction.
     if(buttons & Button::DPAD_UP) {
-      desired_movement = Vec2(0,-1);
       desired_direction = Button::DPAD_UP;
+      desired_movement = Vec2(0,-1);
     } 
     else if(buttons & Button::DPAD_DOWN) {
-      desired_movement = Vec2(0,1);
       desired_direction = Button::DPAD_DOWN;
+      desired_movement = Vec2(0,1);
     }
     else if(buttons & Button::DPAD_LEFT) {
-      desired_movement = Vec2(-1,0);
       desired_direction = Button::DPAD_LEFT;
+      desired_movement = Vec2(-1,0);
     }
     else if(buttons & Button::DPAD_RIGHT) {
-      desired_movement = Vec2(1,0);
       desired_direction = Button::DPAD_RIGHT;
+      desired_movement = Vec2(1,0);
     }
   }
-
-  // See if new input direction is valid.
-  bounds_lr = footprint(location + desired_movement, size);
-  map.tiles_in_rect(bounds_lr, collision_detection);
-
-  // Try existing direction.
-  if (moving_to == entityType::WALL) {
-    // Continue on.
-    moving_to = entityType::NOTHING;
-    bounds_lr = footprint(location + movement, size);
-    map.tiles_in_rect(bounds_lr, collision_detection);
-  } else {
-    movement = desired_movement;
-    direction = desired_direction;
+  
+  // Only check for movement validatity every 8 pixels.
+  if (location.x % 8 == 0 && location.y % 8 == 0) {
+    if (desired_direction != direction) {
+      moving_to = level_get(tile_pt + desired_movement);
+      if ((moving_to & entityType::WALL) == 0) {
+        movement = desired_movement;
+        direction = desired_direction;
+      }
+    }
+    
+    if (moving_to & entityType::WALL) {
+      moving_to = level_get(tile_pt + movement);
+      if (moving_to & entityType::WALL) {
+        movement = Vec2(0,0);
+      }
+    }
   }
-
+  
   uint32_t time_passed = time - last_update;
-  if (time_passed > 10 / c_speed && moving_to == entityType::NOTHING) {
+  if (time_passed > 10 / c_speed) {
     last_update = time;
     location += movement;
   }
-
 }
 
 void Pacman::render() {
-  uint32_t t = SpriteTransform::NONE;
+  uint8_t t = SpriteTransform::NONE;
   switch(direction) {
     case Button::DPAD_RIGHT:
       t = SpriteTransform::HORIZONTAL;
@@ -181,6 +175,10 @@ void Pacman::render() {
   }
 
   screen.sprite(pacmanAnims[sprite], world_to_screen(location), t);
+  screen.pen = Pen(255,0,0);
+  Mat3 bob = Mat3(camera);
+  bob.inverse();
+  screen.pixel(location * bob);
 }
 
 void Pacman::render_lives() {

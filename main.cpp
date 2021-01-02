@@ -9,11 +9,12 @@ using namespace blit;
 
 Mat3 camera;
 
-uint8_t *pill_data;
+// uint8_t *pill_data;
+uint8_t *level_tiles;
 uint8_t current_level;
 
 TileMap *level;
-TileMap *pills;
+// TileMap *pills;
 
 SpriteSheet *level_sprites;
 
@@ -34,21 +35,21 @@ uint32_t pills_eaten;
 uint32_t pills_eaten_this_life;
 
 void power_timer_callback(Timer &timer) {
-  //printf("main::power_timer_callback Power pill expired %d - %d - %d.\n", timer.duration, timer.started, now());
+
   player->power = 0;
   Ghosts::clear_state(ghostState::FRIGHTENED);
 }
 
 void start_power_timer() {
   uint32_t ms = level_data[current_level].fright_time;
-  //printf("main::start_power_timer state currently %d.\n", power_timer.state);
+
   if (power_timer.is_running()) {
-    //printf("main::start_power_timer Increasing power timer %d by %d.\n", power_timer.duration, ms);
+
     power_timer.duration += ms;
   } else {
     power_timer.duration = ms;
     power_timer.loops = 1;
-    //printf("main::start_power_timer Starting power timer %d.\n", power_timer.duration);
+
     power_timer.start();
   }
 }
@@ -72,16 +73,16 @@ void animate_level(Timer &timer) {
   bodge_ghost_animation = !bodge_ghost_animation;
 }
 
-entityType level_get(Point p) {
+uint8_t level_get(Point p) {
   if(p.y < 0 || p.x < 0 || p.y >= level_height || p.x >= level_width) {
     return entityType::WALL;
   }
-  entityType entity = (entityType)pill_data[p.y * level_width + p.x];
-  return entity;
+  uint8_t entity = level_tiles[p.y * level_width + p.x];
+  return mappings[entity];
 }
 
-void level_set(Point p, entityType e) {
-  pill_data[p.y * level_width + p.x] = e;
+void level_set(Point p, uint8_t e) {
+  level_tiles[p.y * level_width + p.x] = e;
 }
 
 float deg2rad(float a) {
@@ -108,7 +109,7 @@ void init() {
   // Load level sprites sheet. Maze | Pills | Fruit
   screen.sprites = SpriteSheet::load(asset_sprites);
   // Load ghost/pacman sprites
-  level_sprites = SpriteSheet::load(asset_level);
+  level_sprites = SpriteSheet::load(asset_leveltng);
   
   power_timer.init(power_timer_callback, 1000, 1);
   
@@ -129,29 +130,24 @@ void init() {
   rotation *= Mat3::rotation(deg2rad(90));
 
   // Load level data in.
-  level = new TileMap((uint8_t *)asset_assets_level1_tmx, nullptr, Size(level_width, level_height), level_sprites);
-  std::vector<uint8_t> mazeVector(asset_assets_level1_tmx_length);
-  mazeVector.assign(&asset_assets_level1_tmx[0], &asset_assets_level1_tmx[asset_assets_level1_tmx_length]);
+  level_tiles = (uint8_t *)malloc(level_width * level_height);
+  for(auto x = 0; x < level_width * level_height; x++){
+    level_tiles[x] = asset_assets_leveltng_tmx[x];
+  }
+  level = new TileMap(level_tiles, nullptr, Size(level_width, level_height), level_sprites);
+  std::vector<uint8_t> mazeVector(asset_assets_leveltng_tmx_length);
+  mazeVector.assign(&asset_assets_leveltng_tmx[0], &asset_assets_leveltng_tmx[asset_assets_level1_tmx_length]);
 
   map.add_layer("background", mazeVector);
   // Set walls.
   map.layers["background"].add_flags({
-    1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
-    16,17,22,23,24,25,26,27,28,29,30,31,
-    32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,
-    48,49,50,51,52,53,54,55,56,57,58,59,60,61
+    1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
+    17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,
+    33,34,35,36,37,38,39,40,41,42
   }, entityType::WALL);
-  map.layers["background"].add_flags(62, entityType::JUNCTION);
-  map.layers["background"].add_flags(63, entityType::WARP);
-  map.layers["background"].add_flags(254, entityType::PORTAL);
-  map.layers["background"].add_flags({0,62,63}, entityType::NOTHING);
-  // Set pills.
-  pill_data = (uint8_t *)malloc(level_width * level_height);
-  for(auto x = 0; x < level_width * level_height; x++){
-    pill_data[x] = asset_pills[x];
-  }
-  pills = new TileMap(pill_data, nullptr, Size(level_width, level_height), level_sprites);
-  pills->offset(4,4);
+  map.layers["background"].add_flags({ 44, 45 }, entityType::JUNCTION);
+  map.layers["background"].add_flags(42, entityType::TUNNEL);
+  map.layers["background"].add_flags(43, entityType::PORTAL);
 }
 
 // Line-interrupt callback for level->draw that applies our camera transformation
@@ -177,20 +173,9 @@ int32_t clamp(int32_t v, int32_t min, int32_t max) {
   return v > min ? (v < max ? v : max) : min;
 }
 
-/** 
- * Was called feet 
- * Don't understand why we neet to futz with width height.
- * If my sprite is 156x 120y 16:16 why does tiles_in_rect
- * check 3 deep.  I can understand it checking 3 wide as 156+16 covers three tiles.
- * But 120+16 does not! FFS FFS Swear rant.
- **/
-Rect footprint(Point pos, Size size) {
-  // return Rect(pos.x, pos.y, size.w, size.h / 2);
-  return Rect(pos,size);
-}
-
+// My reference point is the top_left of a nominal "center tile".
 Point world_to_screen(Point point) {
-  Vec2 world_vector = Vec2(point.x, point.y);
+  Vec2 world_vector = Vec2(point.x - 4, point.y - 4);
   Mat3 bob = Mat3(camera);
   bob.inverse();
   Vec2 screen_vector = world_vector * bob;
@@ -203,16 +188,20 @@ Point screen_to_world(Point point) {
   return Point(world_vector);
 }
 
+/**
+ * Return the tile at the center of the sprite.
+ * Given sprite ref is top left of 16x16 sprite.
+ */ 
 Point tile(Point point) {
-  return Point(clamp(point.x/8,0,level_width),clamp(point.y/8,0,level_height));
+  return Point(clamp((point.x + 7)/8,0,level_width),clamp((point.y + 7)/8,0,level_height));
 }
 
 void next_level() {
-  //printf("main::next_level ---- NEXT LEVEL ----\n");
+
   current_level++;
 
   for(auto x = 0; x < level_width * level_height; x++){
-    pill_data[x] = asset_pills[x];
+    level_tiles[x] = asset_assets_leveltng_tmx[x];
   }
   pills_eaten = 0;
 
@@ -227,19 +216,19 @@ void next_level() {
 }
 
 void pause_game() {
-  //printf("main::pause_game pausing ghost cycle timer.\n");
+
   Ghosts::move_pause();
   if (power_timer.is_running()) {
-    //printf("main::pause_game pausing power timer.\n");
+
     power_timer.pause();
   }
 }
 
 void resume_game() {
-  //printf("main::resume_game resuming game %d.\n", power_timer.state);
+
   Ghosts::move_resume();
   if (power_timer.is_paused()) {
-    //printf("main::resume_game resuming power pill.\n");
+
     power_timer.start();
   }
   if (!timer_level_animate.is_running()) {
@@ -266,7 +255,7 @@ void game_over() {
   pills_eaten_this_life = 0;
   // Restore pills.
   for(auto x = 0; x < level_width * level_height; x++){
-    pill_data[x] = asset_pills[x];
+    level_tiles[x] = asset_assets_leveltng_tmx[x];
   }
   player->lives = 4;
   player->score = 0;
@@ -290,7 +279,7 @@ void render(uint32_t t) {
   level->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), level_line_interrupt_callback);
 
   // LOL i swear this is faster than drawing the layer before.
-  pills->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), pill_line_interrupt_callback);
+  // pills->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), pill_line_interrupt_callback);
   
   player->render();
   for (auto ghost : ghosts) {
@@ -334,7 +323,7 @@ void render(uint32_t t) {
 //
 void update(uint32_t t) {
   if (power_timer.is_running()) {
-    //printf("main::update %d power timer timer pre  dur - %d started - %d loops - %d state - %d\n", t, power_timer.duration,power_timer.started,power_timer.loops,power_timer.state);
+
   }
   static uint32_t last_animation = t;
   static uint32_t button_debounce = t;
@@ -368,7 +357,7 @@ void update(uint32_t t) {
       game_over();
     }
     if (!game_start) {
-      //printf("main::update starting game or level.\n");
+
       game_start = true;
       timer_level_animate.start();
       Ghosts::move_start();

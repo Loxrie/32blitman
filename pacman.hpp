@@ -8,10 +8,14 @@
 struct Pacman {
     
     blit::Size size;
-    blit::Vec2 location;
-    blit::Vec2 movement;
+    blit::Point location;
+    
     uint32_t direction;
+    uint32_t desired_direction;
 
+    blit::Vec2 movement;
+    blit::Vec2 desired_movement;
+    
     float speed;
     float dots_speed;
     float fright_speed;
@@ -21,9 +25,6 @@ struct Pacman {
     blit::Timer power_timer;
     bool power;
     
-    blit::Vec2 desired_movement;
-    uint32_t desired_direction;
-    entityType moving_to;
     uint8_t sprite;
     bool animation_direction;
     uint32_t score;
@@ -39,9 +40,6 @@ struct Pacman {
     void update(uint32_t time);
     void render();
     void render_lives();
-    
-    // How do I make this not be here?
-    std::function<void(blit::Point)> collision_detection;
 };
 
 #endif

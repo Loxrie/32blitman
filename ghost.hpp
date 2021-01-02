@@ -77,7 +77,7 @@ struct Ghost {
 
     uint8_t state;
 
-    entityType moving_to;
+    uint8_t moving_to;
 
     uint8_t sprite;
 
@@ -101,8 +101,6 @@ struct Ghost {
     void update(uint32_t time);
     void animate(uint32_t t);
     void render();
-
-    std::function<void(blit::Point)> collision_detection;
 };
 
 #endif
