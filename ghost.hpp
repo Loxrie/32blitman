@@ -4,6 +4,10 @@
 #ifndef GHOST_H
 #define GHOST_H
 
+const uint8_t house_flags = ghostState::RESTING | ghostState::ARRIVING | ghostState::LEAVING;
+
+const uint8_t tunnel_entity_flags = entityType::PORTAL | entityType::TUNNEL;
+
 const blit::Rect ghostAnims[38] = {
   // Blinky
   blit::Rect(0,0,2,2),

@@ -121,23 +121,7 @@ uint32_t Ghost::direction_to_target(Point target) {
       continue;
     }
 
-    // There is a direction preference for ghosts, UP > LEFT > DOWN > RIGHT.
-    // SO if we reverse that order and there's a tie our preferred direction should win.
-    Vec2 vector;
-    switch (exit) {
-      case Button::DPAD_RIGHT:
-        vector = Vec2(1,0);
-        break;
-      case Button::DPAD_DOWN:
-        vector = Vec2(0,1);
-        break;
-      case Button::DPAD_LEFT:
-        vector = Vec2(-1,0);
-        break;
-      case Button::DPAD_UP:
-        vector = Vec2(0,-1);
-        break;
-    }
+    Vec2 vector = dirToVector[exit];
     Point source_tile = Point(decision_tile.x + vector.x, decision_tile.y + vector.y);
     float distance = fabs(Vec2(target_tile.x - source_tile.x, target_tile.y - source_tile.y).length());
     if (distance < min_distance) {
@@ -156,7 +140,6 @@ uint32_t Ghost::random_direction() {
   uint32_t index = stuck_at.y * level_width + stuck_at.x;
   auto search = mapOfJunctions.find(index);
   if (search == mapOfJunctions.end()) {
-    printf("%s::random_direction missing junction map %d.\n", name.c_str(), index);
     return 0;
   }
 
@@ -242,16 +225,19 @@ void Ghost::update(uint32_t time) {
 
   float c_speed = speed;
 
-  handle_house();
+  // Only do special ghost house stuff if the ghost is around the house.
+  if ((state & house_flags) > 0) {
+    handle_house();  
+  }
   
   // Adjust speed for being in WARP zone.
-  if (flags & entityType::TUNNEL || state & ghostState::RESTING || state & ghostState::ARRIVING || state & ghostState::LEAVING) {
+  if ((flags & tunnel_entity_flags) > 0 || (state & house_flags) > 0) {
     c_speed = tunnel_speed;
   } else if (state & ghostState::FRIGHTENED) {
     c_speed = fright_speed;
   }
 
-  // TODO We are in a PORTAL.
+  // We are in a PORTAL.
   if (flags & entityType::PORTAL) {
     if (direction == Button::DPAD_LEFT && tile_pt == Point(4,18)) {
       location = Vec2(35 * 8, 18 * 8);
@@ -266,9 +252,7 @@ void Ghost::update(uint32_t time) {
   
   if (location.x % 8 > 0 
       || location.y % 8 > 0
-      || state & ghostState::ARRIVING 
-      || state & ghostState::LEAVING 
-      || state & ghostState::RESTING) 
+      || (state & house_flags) > 0 ) 
   {
     // Only update every "speed" fraction of frames. Assume 10ms update.
     // So by default we start updating at 10/0.75. 
@@ -300,8 +284,8 @@ void Ghost::update(uint32_t time) {
   Point target = player->location;
   // If we're at a junction point choose a new direction.
   bool junction = flags & entityType::JUNCTION;
-  bool chase = (state & ghostState::CHASE) && (state & ghostState::FRIGHTENED) == 0;
-  bool scatter = (state & ghostState::SCATTER) && (state & ghostState::FRIGHTENED) == 0;
+  bool chase = (state & (ghostState::CHASE | ghostState::FRIGHTENED)) == ghostState::CHASE;
+  bool scatter = (state & (ghostState::SCATTER | ghostState::FRIGHTENED)) == ghostState::SCATTER;
   if (junction && (state & ghostState::EATEN)) {
     direction = direction_to_target(ghost_house_entrance);
   } else if (junction && scatter) {

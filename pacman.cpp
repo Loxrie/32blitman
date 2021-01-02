@@ -179,7 +179,7 @@ void Pacman::render() {
 void Pacman::render_lives() {
   screen.pen = Pen(255,255,255);
   screen.text("Lives ", minimal_font, Point(30, screen_height - 12));
-  for(auto i = 0; i<player->lives; i++) {
+  for(uint32_t i = 0; i < player->lives; i++) {
     screen.sprite(pacmanAnims[3], Point(60 + (i*16) + 2, screen_height - 18));
   }
 }
