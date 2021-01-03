@@ -28,8 +28,8 @@ Pinky *pinky;
 Inky *inky;
 Clyde *clyde;
 
+uint32_t pill_eaten_time;
 uint32_t pills_eaten;
-
 uint32_t pills_eaten_this_life;
 
 Timer house_timer;
@@ -43,6 +43,27 @@ void theres_a_ghost_about_this_house(Timer &timer) {
   bool pinky_at_home = (pinky->state & resting_mask) == ghostState::RESTING;
   bool inky_at_home = (inky->state & resting_mask) == ghostState::RESTING;
   bool clyde_at_home = (clyde->state & resting_mask) == ghostState::RESTING;
+
+  if (!pinky_at_home && !inky_at_home && !clyde_at_home) {
+    return;
+  }
+
+  uint32_t time_since_last_pill = (now() - pill_eaten_time) / 1000;
+  uint32_t max_time_since_last_pill = (current_level < 5) ? 4 : 3;
+  if (time_since_last_pill > max_time_since_last_pill) {
+    pill_eaten_time = now();
+    if (pinky_at_home) {
+      return pinky->set_state(ghostState::LEAVING);
+    }
+    if (inky_at_home) 
+    {
+      return inky->set_state(ghostState::LEAVING);
+    }
+    if (clyde_at_home) 
+    {
+      return clyde->set_state(ghostState::LEAVING);
+    }
+  }
 
   if (lives_not_lost_this_level) {
     // Pinky leaves immediately.
@@ -62,15 +83,12 @@ void theres_a_ghost_about_this_house(Timer &timer) {
   
   // First ghost leaves at 7, then 17, then 32.
   if (pinky_at_home && pills_eaten_this_life > 6) {
-    // printf("Life lost pinky leaving now %d.\n", pills_eaten_this_life);
     pinky->set_state(ghostState::LEAVING);
   }
   if (inky_at_home && pills_eaten_this_life > 16) {
-    // printf("Life lost inky leaving now %d.\n", pills_eaten_this_life);
     inky->set_state(ghostState::LEAVING);
   }
   if (clyde_at_home && pills_eaten_this_life > 31) {
-    // printf("Life lost clyde leaving now %d.\n", pills_eaten_this_life);
     clyde->set_state(ghostState::LEAVING);
   }
 }
@@ -194,7 +212,6 @@ void init() {
   power_timer.init(power_timer_callback, 1000, 1);
 
   house_timer.init(theres_a_ghost_about_this_house, 10, -1);
-  house_timer.start();
 
   // Animate at 20fps. Though we bodge ghost animation to 10fps.
   // Note this is animation not movement.
@@ -303,11 +320,13 @@ void resume_game() {
 
   Ghosts::move_resume();
   if (power_timer.is_paused()) {
-
     power_timer.start();
   }
   if (!timer_level_animate.is_running()) {
     timer_level_animate.start();
+  }
+  if (!house_timer.is_running()) {
+    house_timer.start();
   }
 }
 
@@ -320,6 +339,7 @@ void reset_level() {
 
   power_timer.stop();
   timer_level_animate.stop();
+  house_timer.stop();
 
   pills_eaten_this_life = 0;
 }
@@ -401,7 +421,6 @@ void update(uint32_t t) {
   static uint32_t button_debounce = t;
   if (game_start && player->lives > 0) {
     player->update(t);
-
     bool pacman_eaten = Ghosts::update(t);
     if (pacman_eaten) {
       lives_not_lost_this_level = false;
@@ -420,9 +439,9 @@ void update(uint32_t t) {
       game_over();
     }
     if (!game_start) {
-      printf("main::update starting level %d\n", current_level);
       game_start = true;
       timer_level_animate.start();
+      house_timer.start();
       Ghosts::move_start();
     }
   }

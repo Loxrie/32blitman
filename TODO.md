@@ -1,7 +1,6 @@
 
 NEXT
 
-- Release the ghosts if no pills are eaten in "x" seconds.
 - Opening the menu on the 32blit doesn't pause the game! :-(
 - You can escape the maze during the tunnel warp.
 - Sound

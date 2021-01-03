@@ -1,5 +1,6 @@
 02/01/21
 
+- Release the ghosts if no pills are eaten in "x" seconds. 4 seconds, 3 seconds post level 5.
 - Scatter/Cycle into level data.
 - No ghost reversal on state change or house exit.
 - Ghost house changes, more like arcade game.  Up/Down rather than Left/Right.  Speed is slower in ghost house.

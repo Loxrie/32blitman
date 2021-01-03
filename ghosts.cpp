@@ -26,7 +26,6 @@ uint8_t clyde_cycle_index = 0;
 void manage_ghost_move_state(Timer &t, Ghost *g, uint8_t *cycle_index) {
   ghostState nextState = cycleStates[*cycle_index];
   if (*cycle_index != 0) {
-    printf("%s::manage_ghost_move_state forcing direction change.\n", g->name.c_str());
     g->forced_direction_change = true;
   }
   g->set_move_state(nextState);

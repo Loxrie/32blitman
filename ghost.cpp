@@ -293,7 +293,6 @@ void Ghost::update(uint32_t time) {
   bool scatter = (state & (ghostState::SCATTER | ghostState::FRIGHTENED)) == ghostState::SCATTER;
   if (junction) {
     if (forced_direction_change && (flags & entityType::JUNCTION)) {
-      printf("%s::update state change, force reversal.\n", name.c_str());
       forced_direction_change = false;
       direction = invertDirection();
     } else if ((state & ghostState::EATEN)) {

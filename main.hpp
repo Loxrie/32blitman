@@ -24,6 +24,7 @@ extern Pinky *pinky;
 extern Inky *inky;
 extern Clyde *clyde;
 
+extern uint32_t pill_eaten_time;
 extern uint32_t pills_eaten;
 extern uint32_t pills_eaten_this_life;
 
