@@ -16,7 +16,9 @@ Thanks to:
 And these three analyses of Pacman:
 
 [Game Internals - Understanding Pac-Man Behavior](https://gameinternals.com/understanding-pac-man-ghost-behavior)
+
 [The Pac-Man Dossier](https://www.gamasutra.com/view/feature/132330/the_pacman_dossier.php)
+
 [Don Hodges - The Pink Explanation](http://donhodges.com/pacman_pinky_explanation.htm)
 
 Button "A" (z on my keyboard) starts the game/levels/game over as it stands now.
