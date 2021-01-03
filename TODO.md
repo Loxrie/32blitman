@@ -15,4 +15,4 @@ TODO
 - Pacman cornering is wrong.  Permit 45 degree angle corners for speed.
 - Ghost cornering needs slowdown.
 - Ghost vs Pacman speeds wonky?
-- Add levels beyond 5.
+- Cruise Elroy?

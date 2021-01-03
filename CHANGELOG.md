@@ -1,5 +1,6 @@
 02/01/21
 
+- Add levels beyond 5.
 - Release the ghosts if no pills are eaten in "x" seconds. 4 seconds, 3 seconds post level 5.
 - Scatter/Cycle into level data.
 - No ghost reversal on state change or house exit.
