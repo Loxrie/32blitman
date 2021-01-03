@@ -6,51 +6,46 @@
 
 using namespace blit;
 
-Rect pacmanAnims[16] = {
-  Rect(6,12,2,2),
-  Rect(4,12,2,2),
-  Rect(2,12,2,2),
-  Rect(0,12,2,2)
+Rect pacmanAnims[4] = {
+  Rect(6,10,2,2),
+  Rect(4,10,2,2),
+  Rect(2,10,2,2),
+  Rect(0,10,2,2),
+};
+
+Rect pacmanDeathAnim[8] = {
+  Rect(6,10,2,2),
+  Rect(4,10,2,2),
+  Rect(2,10,2,2),
+  Rect(0,10,2,2),
+  Rect(8,10,2,2),
+  Rect(10,10,2,2),
+  Rect(12,10,2,2),
+  Rect(14,10,2,2)
 };
 
 Pacman::Pacman() {
   size = Size(15,15);
-  location = Vec2( (19 * 8) + 4, 27 * 8);
-  movement = Vec2(0,0);
-  direction = 0;
-  desired_movement = movement;
-  desired_direction = direction;
 
-  speed = 0.8f;
-  
-  power = 0;
-
-  sprite = 0;
   lives = 4;
   score = 0;
 
-  collision_detection = [this](Point tile_pt) -> void {
-    if(map.has_flag(tile_pt, entityType::WALL)) {
-      this->moving_to = entityType::WALL;
-    }
-  };
+  init(level_data[0]);
 }
 
-void Pacman::init() {
-  location = Vec2( (19 * 8) + 4, 27 * 8);
-  movement = Vec2(0,0);
-  direction = 0;
+void Pacman::init(LevelData ld) {
+  location = Point( 19 * 8 + 4, 27 * 8);
+  movement = Vec2(-1, 0);
+  direction = 1;
+  desired_direction = direction;
+
+  speed = ld.pacman_speed;
+  dots_speed = ld.pacman_dots_speed;
+  fright_speed = ld.pacman_fright_speed;
+  fright_dots_speed = ld.pacman_fright_dots_speed;
+
   power = 0;
   sprite = 0;
-  desired_movement = movement;
-  desired_direction = direction;
-}
-
-void Pacman::new_game() {
-  speed = 0.8f;
-  score = 0;
-  lives = 4;
-  init();
 }
 
 bool Pacman::is_pilled_up() {
@@ -82,38 +77,35 @@ void Pacman::animate() {
 
 void Pacman::update(uint32_t time) {
   static uint32_t last_update = 0;
-  moving_to = entityType::NOTHING;
-  Rect bounds_lr;
+  uint8_t moving_to = entityType::WALL;
+  float c_speed = speed;
 
   Point tile_pt = tile(location);
-  uint32_t flags = map.get_flags(tile_pt);
+  uint8_t flags = level_get(tile_pt);
+  if (power)
+    c_speed = fright_speed;
 
-  if (flags & entityType::NOTHING) {
-    speed = 0.80f;
+  if (flags & entityType::PILL) {
+    c_speed = dots_speed;
     if (power)
-      speed = 0.90f;
-  }
-
-  if (level_get(tile_pt) == entityType::PILL) {
-    if (power)
-      speed = 0.71f;
-    else 
-      speed = 0.79f;
+      c_speed = fright_dots_speed;
     score += 10;
     pills_eaten++;
     pills_eaten_this_life++;
-    level_set(tile_pt, entityType::NOTHING);
+    pill_eaten_time = time;
+    // With a shortcut taken in one place, another piece of code gets more complicated. :D
+    level_set(tile_pt, (flags & entityType::JUNCTION) ? 44 : (flags & entityType::CORNER) ? 49 : 0);
   }
 
-  if (level_get(tile_pt) == entityType::POWER) {
-    speed = 0.90f;
+  if (flags & entityType::POWER) {
     power = 1;
     score += 50;
     pills_eaten++;
     pills_eaten_this_life++;
-    level_set(tile_pt, entityType::NOTHING);
-    start_power_timer(10000);
-    set_ghost_state(ghostState::FRIGHTENED);
+    pill_eaten_time = time;
+    level_set(tile_pt, (flags & entityType::JUNCTION) ? 44 : (flags & entityType::CORNER) ? 49 : 0);
+    start_power_timer();
+    Ghosts::set_state(ghostState::FRIGHTENED);
   }
 
   // TODO We are in a PORTAL.
@@ -128,51 +120,53 @@ void Pacman::update(uint32_t time) {
   if (buttons.state > 0) {
     // Possible new direction.
     if(buttons & Button::DPAD_UP) {
-      desired_movement = Vec2(0,-1);
       desired_direction = Button::DPAD_UP;
+      desired_movement = Vec2(0,-1);
     } 
     else if(buttons & Button::DPAD_DOWN) {
-      desired_movement = Vec2(0,1);
       desired_direction = Button::DPAD_DOWN;
+      desired_movement = Vec2(0,1);
     }
     else if(buttons & Button::DPAD_LEFT) {
-      desired_movement = Vec2(-1,0);
       desired_direction = Button::DPAD_LEFT;
+      desired_movement = Vec2(-1,0);
     }
     else if(buttons & Button::DPAD_RIGHT) {
-      desired_movement = Vec2(1,0);
       desired_direction = Button::DPAD_RIGHT;
+      desired_movement = Vec2(1,0);
     }
   }
-
-  // See if new input direction is valid.
-  bounds_lr = footprint(location + desired_movement, size);
-  map.tiles_in_rect(bounds_lr, collision_detection);
-
-  // Try existing direction.
-  if (moving_to == entityType::WALL) {
-    // Continue on.
-    moving_to = entityType::NOTHING;
-    bounds_lr = footprint(location + movement, size);
-    map.tiles_in_rect(bounds_lr, collision_detection);
-  } else {
-    movement = desired_movement;
-    direction = desired_direction;
+  
+  // Only check for movement validatity every 8 pixels.
+  if (location.x % 8 == 0 && location.y % 8 == 0) {
+    if (desired_direction != direction) {
+      moving_to = level_get(tile_pt + desired_movement);
+      if ((moving_to & entityType::WALL) == 0) {
+        movement = desired_movement;
+        direction = desired_direction;
+      }
+    }
+    
+    if (moving_to & entityType::WALL) {
+      moving_to = level_get(tile_pt + movement);
+      if (moving_to & entityType::WALL) {
+        movement = Vec2(0,0);
+      }
+    }
   }
-
+  
   uint32_t time_passed = time - last_update;
-  if (time_passed > 10 / speed && moving_to == entityType::NOTHING) {
+  if (time_passed > 10 / c_speed) {
     last_update = time;
     location += movement;
   }
-
 }
 
 void Pacman::render() {
-  uint32_t t = SpriteTransform::NONE;
+  uint8_t t = SpriteTransform::NONE;
   switch(direction) {
     case Button::DPAD_RIGHT:
-      t = SpriteTransform::R180;
+      t = SpriteTransform::HORIZONTAL;
       break;
     case Button::DPAD_UP:
       t = SpriteTransform::R90;
@@ -183,4 +177,12 @@ void Pacman::render() {
   }
 
   screen.sprite(pacmanAnims[sprite], world_to_screen(location), t);
+}
+
+void Pacman::render_lives() {
+  screen.pen = Pen(255,255,255);
+  screen.text("Lives ", minimal_font, Point(30, screen_height - 12));
+  for(uint32_t i = 0; i < player->lives; i++) {
+    screen.sprite(pacmanAnims[3], Point(60 + (i*16) + 2, screen_height - 18));
+  }
 }

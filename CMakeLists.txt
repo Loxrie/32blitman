@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 
 project (pacman)
 
-set(32BLIT_PATH "../32blit-beta" CACHE PATH "Path to 32blit.cmake")
+set(32BLIT_PATH "../32blit-loxrie" CACHE PATH "Path to 32blit.cmake")
 
 include (${32BLIT_PATH}/32blit.cmake)
 

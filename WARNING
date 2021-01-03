@@ -1,0 +1,19 @@
+Timer based ghost state progression.
+
+Incompatible with 32blit and 32blit-beta.  Do not use.
+
+Fix ghost eating bug.
+Fix pause/resume debounce.
+Fix pause/resume not pausing/resuming nec. timers. (needs pause() adding to blit::Timer)
+Fix wrong colours assigned to ghosts.
+
+To Do
+
+  - Ghost state updates wonky around the house.
+  - Ghost state timer, how the hell do we manage:
+   - Pausing on state change to frightened.
+   - Resuming timing on ghost rebirth.
+   - Pausing/resuming on pause/resume not interfering with the above?
+
+
+Perhaps being able to pause the game is more hassle than it's worth?
