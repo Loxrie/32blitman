@@ -70,6 +70,7 @@ struct Ghost {
 
     uint32_t direction;
     uint32_t desired_direction;
+    bool forced_direction_change;
 
     blit::Point scatter_target;
 

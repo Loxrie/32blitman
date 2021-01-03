@@ -92,7 +92,8 @@ void Pacman::update(uint32_t time) {
     score += 10;
     pills_eaten++;
     pills_eaten_this_life++;
-    level_set(tile_pt, (flags & entityType::JUNCTION) ? 44 : 0);
+    // With a shortcut taken in one place, another piece of code gets more complicated. :D
+    level_set(tile_pt, (flags & entityType::JUNCTION) ? 44 : (flags & entityType::CORNER) ? 49 : 0);
   }
 
   if (flags & entityType::POWER) {
@@ -100,7 +101,7 @@ void Pacman::update(uint32_t time) {
     score += 50;
     pills_eaten++;
     pills_eaten_this_life++;
-    level_set(tile_pt, (flags & entityType::JUNCTION) ? 44 : 0);
+    level_set(tile_pt, (flags & entityType::JUNCTION) ? 44 : (flags & entityType::CORNER) ? 49 : 0);
     start_power_timer();
     Ghosts::set_state(ghostState::FRIGHTENED);
   }

@@ -11,6 +11,7 @@ Mat3 camera;
 
 uint8_t *level_tiles;
 uint8_t current_level;
+std::vector<int32_t> cycleTimes;
 
 TileMap *level;
 
@@ -113,6 +114,43 @@ void animate_level(Timer &timer) {
   bodge_ghost_animation = !bodge_ghost_animation;
 }
 
+std::vector<int32_t> getCycleTimes() {
+  if (current_level < 1) {
+    return std::vector<int32_t> {
+      7000,
+      20000,
+      7000,
+      20000,
+      5000,
+      20000,
+      5000,
+      -1
+    };
+  }
+  if (current_level < 4) {
+    return std::vector<int32_t> {
+      7000,
+      20000,
+      7000,
+      20000,
+      5000,
+      1033000,
+      17,
+      -1
+    };
+  }
+  return std::vector<int32_t> {
+    5000,
+    20000,
+    5000,
+    20000,
+    5000,
+    1037000,
+    17,
+    -1
+  };
+}
+
 uint8_t level_get(Point p) {
   if(p.y < 0 || p.x < 0 || p.y >= level_height || p.x >= level_width) {
     return entityType::WALL;
@@ -141,10 +179,12 @@ uint32_t ms_update;
 // setup your game here
 //
 void init() {
-  current_level = 0;
-  srand(time(NULL));
-  game_start = false;
   set_screen_mode(ScreenMode::hires);
+  srand(time(NULL));
+
+  game_start = false;
+  current_level = 0;
+  cycleTimes = getCycleTimes();
 
   // Load level sprites sheet. Maze | Pills | Fruit
   screen.sprites = SpriteSheet::load(asset_sprites);
@@ -217,7 +257,12 @@ Point tile(Point point) {
 
 void next_level() {
   lives_not_lost_this_level = true;
-  current_level++;
+  
+  // Try not to crash if you exceed the number of levels.
+  if (current_level < level_data.size())
+    current_level++;
+
+  cycleTimes = getCycleTimes();
 
   for(auto x = 0; x < level_width * level_height; x++){
     level_tiles[x] = asset_assets_leveltng_tmx[x];
@@ -375,7 +420,7 @@ void update(uint32_t t) {
       game_over();
     }
     if (!game_start) {
-
+      printf("main::update starting level %d\n", current_level);
       game_start = true;
       timer_level_animate.start();
       Ghosts::move_start();

@@ -100,10 +100,11 @@ enum entityType {
   TUNNEL = 4,
   PORTAL = 8,
   PILL = 16,
-  POWER = 32
+  POWER = 32,
+  CORNER = 64
 };
 
-const uint8_t mappings[49] = {
+const uint8_t mappings[51] = {
   entityType::NOTHING,
   entityType::WALL,
   entityType::WALL,
@@ -151,8 +152,10 @@ const uint8_t mappings[49] = {
   entityType::JUNCTION,
   entityType::JUNCTION | entityType::PILL,
   entityType::PILL,
-  entityType::JUNCTION |entityType::POWER,
-  entityType::POWER
+  entityType::CORNER | entityType::POWER,
+  entityType::POWER,
+  entityType::CORNER,
+  entityType::CORNER | entityType::PILL
 };
 
 enum ghostState {

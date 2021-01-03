@@ -7,14 +7,8 @@ using namespace blit;
 
 std::vector<Ghost *> ghosts;
 
-// Level 1
-// Scatter 7 -> Chase 20 -> Scatter 7 -> Chase 20 -> Scatter 5 -> Chase 20 -> Scatter 5 -> Chase
-// Level 2 - 4
-// Scatter 7 -> Chase 20 -> Scatter 7 -> Chase 20 -> Scatter 5 -> Chase 1033 -> Scatter 1/60 -> Chase
-// Level 5+
-// Scatter 5 -> Chase 20 -> Scatter 5 -> Chase 20 -> Scatter 5 -> Chase 1037 -> Scatter 1/60 -> Chase
-
 std::vector<ghostState> cycleStates = {
+  ghostState::SCATTER,
   ghostState::CHASE,
   ghostState::SCATTER,
   ghostState::CHASE,
@@ -24,16 +18,6 @@ std::vector<ghostState> cycleStates = {
   ghostState::CHASE
 };
 
-std::vector<int8_t> cycleTimes = {
-  20,
-  7,
-  20,
-  5,
-  20,
-  5,
-  -1
-};
-
 uint8_t blinky_cycle_index = 0;
 uint8_t pinky_cycle_index = 0;
 uint8_t inky_cycle_index = 0;
@@ -41,18 +25,18 @@ uint8_t clyde_cycle_index = 0;
 
 void manage_ghost_move_state(Timer &t, Ghost *g, uint8_t *cycle_index) {
   ghostState nextState = cycleStates[*cycle_index];
-
+  if (*cycle_index != 0) {
+    printf("%s::manage_ghost_move_state forcing direction change.\n", g->name.c_str());
+    g->forced_direction_change = true;
+  }
   g->set_move_state(nextState);
   if (*cycle_index < cycleTimes.size()) {
     int8_t next_cycle_time = cycleTimes[*cycle_index];
     if (next_cycle_time != -1) {
       // Setup next ghost cycle.
-
-      g->move_cycle_timer.duration = cycleTimes[*cycle_index] * 1000;
-
+      g->move_cycle_timer.duration = cycleTimes[*cycle_index];
       (*cycle_index)++;
     } else {
-
       g->move_cycle_timer.stop();
     }
   }
@@ -83,7 +67,7 @@ void Ghosts::init(uint8_t current_level) {
 
 void Ghosts::move_start() {
   for (auto ghost : ghosts) {
-
+    ghost->move_cycle_timer.duration = 10;
     ghost->move_cycle_timer.start();
   }
 }
@@ -130,6 +114,8 @@ bool Ghosts::update(uint32_t t) {
   Point pacman_pt = tile(player->location);
   for (auto ghost : ghosts) {
     ghost->update(t);
+    // Odd that pacman can pass through ghosts
+    // way more often than the arcade game.
     Point ghost_pt = tile(ghost->location);
     if (pacman_pt == ghost_pt) {
       if (ghost->edible()) {

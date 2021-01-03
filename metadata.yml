@@ -1,6 +1,6 @@
 title: Pacman
 description: A vaguely accurate pacman clone.
-author: diziet
+author: github.com/Loxrie
 splash:
   file: ./32blitman.png
 icon:

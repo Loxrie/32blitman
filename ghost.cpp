@@ -14,6 +14,8 @@ Ghost::Ghost() {
   last_update = 0;
   
   sprite = 0;
+
+  forced_direction_change = false;
 }
 
 // This is called once every 100ms or so.
@@ -286,19 +288,25 @@ void Ghost::update(uint32_t time) {
 
   Point target = player->location;
   // If we're at a junction point choose a new direction.
-  bool junction = flags & entityType::JUNCTION;
+  bool junction = flags & (entityType::JUNCTION | entityType::CORNER);
   bool chase = (state & (ghostState::CHASE | ghostState::FRIGHTENED)) == ghostState::CHASE;
   bool scatter = (state & (ghostState::SCATTER | ghostState::FRIGHTENED)) == ghostState::SCATTER;
-  if (junction && (state & ghostState::EATEN)) {
-    direction = direction_to_target(ghost_house_entrance);
-  } else if (junction && scatter) {
-    direction = direction_to_target(scatter_target);
-  } else if (junction && chase) {
-    direction = direction_to_target(target);
-  } else if (junction && (state & ghostState::FRIGHTENED)) {
-    direction = random_direction();
+  if (junction) {
+    if (forced_direction_change && (flags & entityType::JUNCTION)) {
+      printf("%s::update state change, force reversal.\n", name.c_str());
+      forced_direction_change = false;
+      direction = invertDirection();
+    } else if ((state & ghostState::EATEN)) {
+      direction = direction_to_target(ghost_house_entrance);
+    } else if (junction && scatter) {
+      direction = direction_to_target(scatter_target);
+    } else if (junction && chase) {
+      direction = direction_to_target(target);
+    } else if (junction && (state & ghostState::FRIGHTENED)) {
+      direction = random_direction();
+    }
   }
-
+  
   switch (direction) {
     case Button::DPAD_LEFT:
       location.x -= 1.0f;

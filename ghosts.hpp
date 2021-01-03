@@ -13,6 +13,8 @@ extern uint8_t clyde_cycle_index;
 
 extern std::vector<Ghost *> ghosts;
 
+extern std::vector<int32_t> getCycleTimes(int32_t current_level);
+
 // Ghost management functions.
 struct Ghosts {
   static void init(uint8_t current_level);

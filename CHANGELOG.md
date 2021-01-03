@@ -1,7 +1,11 @@
 02/01/21
 
-- Ghost house changes, more like arcade game.  Up/Down rather than Left/Right.  Speed is slower.
+- Scatter/Cycle into level data.
+- No ghost reversal on state change or house exit.
+- Ghost house changes, more like arcade game.  Up/Down rather than Left/Right.  Speed is slower in ghost house.
 - Major rewrite.  Having level and pills as separate sprite maps killed render time.
+- Added metadata images.
+- Ghosts exit house after life loss on the arcade style cycle of pills.
 
 01/01/21
 
