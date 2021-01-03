@@ -1,3 +1,9 @@
+03/01/21
+
+- Animated eyes for eaten ghosts.
+- Fruit
+- Eaten ghosts in succession now gives appropriate points as does the first ghost.
+
 02/01/21
 
 - Add levels beyond 5.

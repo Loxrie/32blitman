@@ -8,35 +8,57 @@
 using namespace blit;
 
 Mat3 camera;
+Mat3 inverse_camera;
 
 uint8_t *level_tiles;
-uint8_t current_level;
-std::vector<int32_t> cycleTimes;
+std::array<int32_t, 8> cycleTimes;
 
 TileMap *level;
 
 SpriteSheet *level_sprites;
 
-bool bodge_ghost_animation = false;
 
+/**
+ * Timers and callbacks.
+ */ 
 Timer timer_level_animate;
 Timer power_timer;
+Timer house_timer;
+Timer fruit_timer;
 
+bool bodge_ghost_animation = false;
+
+/**
+ * Ghost house state
+ */
+bool lives_not_lost_this_level = true;
+uint8_t inky_dot_limit = 30;
+uint8_t clyde_dot_limit = 90;
+
+/**
+ * Sprite Managers/Characters
+ */
 Pacman *player;
 Blinky *blinky;
 Pinky *pinky;
 Inky *inky;
 Clyde *clyde;
 
+/**
+ * Fruit/Pills/General state.
+ */
+bool game_start = false;
+uint8_t current_level = 0;
+uint8_t ghost_train = 1;
+bool first_fruit = false;
+bool second_fruit = false;
+Rect fruit_rect = Rect(0,0,0,0);
+Point fruit_a = Point(19,21);
+Point fruit_b = Point(20,21);
+
 uint32_t pill_eaten_time;
 uint32_t pills_eaten;
 uint32_t pills_eaten_this_life;
-
-Timer house_timer;
-
-bool lives_not_lost_this_level = true;
-uint8_t inky_dot_limit = 30;
-uint8_t clyde_dot_limit = 90;
 
 void theres_a_ghost_about_this_house(Timer &timer) {
   uint8_t resting_mask = (ghostState::RESTING | ghostState::LEAVING);
@@ -93,8 +115,12 @@ void theres_a_ghost_about_this_house(Timer &timer) {
   }
 }
 
-void power_timer_callback(Timer &timer) {
+void fruit_timer_callback(Timer &timer) {  
+  fruit_rect = Rect(0,0,0,0);
+}
 
+void power_timer_callback(Timer &timer) {
+  ghost_train = 1;
   player->power = 0;
   Ghosts::clear_state(ghostState::FRIGHTENED);
 }
@@ -121,6 +147,25 @@ bool operator!=(Point a, Point b) {
   return (a.x != b.x || a.y != b.y);
 }
 
+void spawn_fruit() {
+  if (!first_fruit && pills_eaten >= 70) {
+    first_fruit = true;
+    fruit_rect = fruit_mapping[level_data[current_level].bonus_image];
+    fruit_timer.start();
+  } else if (first_fruit && !second_fruit && pills_eaten >= 170) {
+    second_fruit = true;
+    fruit_rect = fruit_mapping[level_data[current_level].bonus_image];
+    fruit_timer.start();
+  }
+  if (fruit_rect.w != 0) {
+    Point pacman_pt = tile(player->location);
+    if (pacman_pt == fruit_a || pacman_pt == fruit_b) {
+      player->score += level_data[current_level].bonus_points;
+      fruit_rect = Rect(0,0,0,0);
+    }
+  }
+}
+
 void animate_level(Timer &timer) {
   uint32_t t = now();
   player->animate();
@@ -132,9 +177,9 @@ void animate_level(Timer &timer) {
   bodge_ghost_animation = !bodge_ghost_animation;
 }
 
-std::vector<int32_t> getCycleTimes() {
+std::array<int32_t, 8> getCycleTimes() {
   if (current_level < 1) {
-    return std::vector<int32_t> {
+    return std::array<int32_t, 8> {
       7000,
       20000,
       7000,
@@ -146,7 +191,7 @@ std::vector<int32_t> getCycleTimes() {
     };
   }
   if (current_level < 4) {
-    return std::vector<int32_t> {
+    return std::array<int32_t, 8> {
       7000,
       20000,
       7000,
@@ -157,7 +202,7 @@ std::vector<int32_t> getCycleTimes() {
       -1
     };
   }
-  return std::vector<int32_t> {
+  return std::array<int32_t, 8> {
     5000,
     20000,
     5000,
@@ -185,7 +230,6 @@ float deg2rad(float a) {
     return a * (pi / 180.0f);
 }
 
-bool game_start;
 uint32_t high_score;
 uint32_t go_score;
 uint32_t ms_update;
@@ -200,18 +244,17 @@ void init() {
   set_screen_mode(ScreenMode::hires);
   srand(time(NULL));
 
-  game_start = false;
-  current_level = 0;
   cycleTimes = getCycleTimes();
 
-  // Load level sprites sheet. Maze | Pills | Fruit
+  // Load ghost/pacman/fruit sprites
   screen.sprites = SpriteSheet::load(asset_sprites);
-  // Load ghost/pacman sprites
-  level_sprites = SpriteSheet::load(asset_leveltng);
+  // Load level sprites sheet. Maze | Pills
+  level_sprites = SpriteSheet::load(asset_level);
   
   power_timer.init(power_timer_callback, 1000, 1);
 
   house_timer.init(theres_a_ghost_about_this_house, 10, -1);
+  fruit_timer.init(fruit_timer_callback, 10000, 1);
 
   // Animate at 20fps. Though we bodge ghost animation to 10fps.
   // Note this is animation not movement.
@@ -232,7 +275,7 @@ void init() {
   // Load level data in.
   level_tiles = (uint8_t *)malloc(level_width * level_height);
   for(auto x = 0; x < level_width * level_height; x++){
-    level_tiles[x] = asset_assets_leveltng_tmx[x];
+    level_tiles[x] = asset_assets_level1_tmx[x];
   }
   level = new TileMap(level_tiles, nullptr, Size(level_width, level_height), level_sprites);
 }
@@ -246,9 +289,10 @@ std::function<Mat3(uint8_t)> level_line_interrupt_callback = [](uint8_t y) -> Ma
 void update_camera() {
   Vec2 center = Vec2(19*8+4,18*8);
   camera = Mat3::identity();
-  // camera *= Mat3::translation(Vec2(player->location.x, player->location.y)); // offset to middle of world
   camera *= Mat3::translation(Vec2((center.x+player->location.x)/2, (center.y+player->location.y)/2)); // Move middle of world - pacman to top left.
   camera *= Mat3::translation(Vec2(-screen_width / 2, -screen_height / 2)); // transform to centre of framebuffer
+  inverse_camera = Mat3(camera);
+  inverse_camera.inverse();
 }
 
 int32_t clamp(int32_t v, int32_t min, int32_t max) {
@@ -257,11 +301,7 @@ int32_t clamp(int32_t v, int32_t min, int32_t max) {
 
 // My reference point is the top_left of a nominal "center tile".
 Point world_to_screen(Point point) {
-  Vec2 world_vector = Vec2(point.x - 4, point.y - 4);
-  Mat3 bob = Mat3(camera);
-  bob.inverse();
-  Vec2 screen_vector = world_vector * bob;
-  return Point(screen_vector);
+  return Point(Vec2(point.x - 4, point.y - 4) * inverse_camera);
 }
 
 /**
@@ -274,6 +314,8 @@ Point tile(Point point) {
 
 void next_level() {
   lives_not_lost_this_level = true;
+  first_fruit = false;
+  second_fruit = false;
   
   // Try not to crash if you exceed the number of levels.
   if (current_level < level_data.size())
@@ -282,7 +324,7 @@ void next_level() {
   cycleTimes = getCycleTimes();
 
   for(auto x = 0; x < level_width * level_height; x++){
-    level_tiles[x] = asset_assets_leveltng_tmx[x];
+    level_tiles[x] = asset_assets_level1_tmx[x];
   }
   pills_eaten = 0;
 
@@ -341,6 +383,7 @@ void reset_level() {
   timer_level_animate.stop();
   house_timer.stop();
 
+  ghost_train = 1;
   pills_eaten_this_life = 0;
 }
 
@@ -350,7 +393,7 @@ void game_over() {
   pills_eaten_this_life = 0;
   // Restore pills.
   for(auto x = 0; x < level_width * level_height; x++){
-    level_tiles[x] = asset_assets_leveltng_tmx[x];
+    level_tiles[x] = asset_assets_level1_tmx[x];
   }
   player->lives = 4;
   player->score = 0;
@@ -372,7 +415,11 @@ void render(uint32_t t) {
   uint32_t ms_start = now();
   // Draw maze and pills.
   level->draw(&screen, Rect(0, 0, screen.bounds.w, screen.bounds.h), level_line_interrupt_callback);
-  
+
+  if (fruit_rect.w > 0) {
+    screen.sprite(fruit_rect, world_to_screen(Point(156, 168)));
+  }
+
   player->render();
   for (auto ghost : ghosts) {
     ghost->render();
@@ -432,6 +479,7 @@ void update(uint32_t t) {
     } else if (pills_eaten == pills_per_level) {
       next_level();
     }
+    spawn_fruit();
   // Debounce pause.
   } else if (buttons & Button::A && t - button_debounce > button_debounce_rate) {
     button_debounce = t;

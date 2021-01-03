@@ -7,24 +7,13 @@ using namespace blit;
 
 std::vector<Ghost *> ghosts;
 
-std::vector<ghostState> cycleStates = {
-  ghostState::SCATTER,
-  ghostState::CHASE,
-  ghostState::SCATTER,
-  ghostState::CHASE,
-  ghostState::SCATTER,
-  ghostState::CHASE,
-  ghostState::SCATTER,
-  ghostState::CHASE
-};
-
 uint8_t blinky_cycle_index = 0;
 uint8_t pinky_cycle_index = 0;
 uint8_t inky_cycle_index = 0;
 uint8_t clyde_cycle_index = 0;
 
 void manage_ghost_move_state(Timer &t, Ghost *g, uint8_t *cycle_index) {
-  ghostState nextState = cycleStates[*cycle_index];
+  ghostState nextState = (*cycle_index % 2) == 0 ? ghostState::SCATTER : ghostState::CHASE;
   if (*cycle_index != 0) {
     g->forced_direction_change = true;
   }
@@ -119,7 +108,8 @@ bool Ghosts::update(uint32_t t) {
     if (pacman_pt == ghost_pt) {
       if (ghost->edible()) {
         ghost->set_state(ghostState::EATEN);
-        player->score += 100;
+        player->score +=  100 * pow(2, ghost_train);
+        ghost_train++;
       } else if (!ghost->eaten()) {
         pacman_eaten = true;
       }

@@ -20,9 +20,8 @@ Ghost::Ghost() {
 
 // This is called once every 100ms or so.
 void Ghost::animate(uint32_t t) {
-  if (state & ghostState::EATEN) {
-    sprite = (sprite % 2) ? 37 : 36;
-  } else if (state & ghostState::FRIGHTENED) {
+  bool eaten = state & ghostState::EATEN;
+  if (!eaten && state & ghostState::FRIGHTENED) {
     if (power_timer.is_running() 
         && (power_timer.duration - (t - power_timer.started)) < level_data[current_level].fright_warning_time)
     {
@@ -33,16 +32,16 @@ void Ghost::animate(uint32_t t) {
   } else {
     switch(direction) {
       case Button::DPAD_LEFT:
-        sprite = (sprite % 2) ? anim_offset : anim_offset + 1;
+        sprite = (eaten) ? 36 : (sprite % 2) ? anim_offset : anim_offset + 1;
         break;
       case Button::DPAD_RIGHT:
-        sprite = (sprite % 2) ? anim_offset + 2 : anim_offset + 3;
+        sprite = (eaten) ? 37 : (sprite % 2) ? anim_offset + 2 : anim_offset + 3;
         break;
       case Button::DPAD_UP:
-        sprite = (sprite % 2) ? anim_offset + 4 : anim_offset + 5;
+        sprite = (eaten) ? 38 : (sprite % 2) ? anim_offset + 4 : anim_offset + 5;
         break;
       case Button::DPAD_DOWN:
-        sprite = (sprite % 2) ? anim_offset + 6 : anim_offset + 7;
+        sprite = (eaten) ? 39 : (sprite % 2) ? anim_offset + 6 : anim_offset + 7;
         break;
     }
   }
@@ -284,7 +283,6 @@ void Ghost::update(uint32_t time) {
 
   // Setup
   moving_to = entityType::WALL;
-  Rect bounds_lr;
 
   Point target = player->location;
   // If we're at a junction point choose a new direction.

@@ -8,7 +8,7 @@ const uint8_t house_flags = ghostState::RESTING | ghostState::ARRIVING | ghostSt
 
 const uint8_t tunnel_entity_flags = entityType::PORTAL | entityType::TUNNEL;
 
-const blit::Rect ghostAnims[38] = {
+const blit::Rect ghostAnims[40] = {
   // Blinky
   blit::Rect(0,0,2,2),
   blit::Rect(2,0,2,2),
@@ -53,7 +53,9 @@ const blit::Rect ghostAnims[38] = {
   blit::Rect(4,8,2,2),
   // Eyes
   blit::Rect(6,8,2,2),
-  blit::Rect(8,8,2,2)
+  blit::Rect(8,8,2,2),
+  blit::Rect(10,8,2,2),
+  blit::Rect(12,8,2,2),
 };
 
 struct Ghost {
