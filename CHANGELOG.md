@@ -1,3 +1,13 @@
+05/01/21
+
+- Ghosts look in desired_direction, e.g. so they can face down just before turn.
+- Behaviour is now based on tile change rather than precise alignment with a set point in a tile.
+- Ghosts can now reverse anywhere when entering new tile if flag is set.  Removed "junction" requirement.
+- Ghosts can now reverse when they're eaten.
+- Level wasn't being reset.
+- Ghosts now reverse direction when a power dot is eaten.
+- Pacman/Ghost speed is more appropriate now, based on a pool of "velocity" rather than limiting update speed.
+
 03/01/21
 
 - Animated eyes for eaten ghosts.
