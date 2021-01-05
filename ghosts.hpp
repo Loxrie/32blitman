@@ -25,6 +25,7 @@ struct Ghosts {
 
   static void set_state(uint8_t s);
   static void clear_state(uint8_t s);
+  static void power_pill_eaten();
 
   // Returns true if a ghost ate pacman.
   static bool update(uint32_t t);

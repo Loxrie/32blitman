@@ -39,7 +39,7 @@ void level_set(blit::Point p, uint8_t e);
 
 void start_power_timer();
 blit::Point world_to_screen(blit::Point point);
-blit::Point tile(blit::Point point);
+blit::Point get_tile(blit::Point point);
 
 void next_level();
 void reset_level();
