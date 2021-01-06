@@ -1,3 +1,8 @@
+06/01/21
+
+- Ghosts targets corrected. Pinky 4 tiles ahead. Inky "double" the vector from blinky to pacman.  Clyde fluctuates between pacman and scatter corner, though it's not strictly a "cardinal" 8 tiles.
+- Fixed a bunch of issues around level/game reset.
+
 05/01/21
 
 - Ghosts look in desired_direction, e.g. so they can face down just before turn.

@@ -6,11 +6,6 @@
 #ifndef GHOSTS_H
 #define GHOSTS_H
 
-extern uint8_t blinky_cycle_index;
-extern uint8_t pinky_cycle_index;
-extern uint8_t inky_cycle_index;
-extern uint8_t clyde_cycle_index;
-
 extern std::vector<Ghost *> ghosts;
 
 extern std::vector<int32_t> getCycleTimes(int32_t current_level);
@@ -19,9 +14,6 @@ extern std::vector<int32_t> getCycleTimes(int32_t current_level);
 struct Ghosts {
   static void init(uint8_t current_level);
   static void move_start();
-  static void move_pause();
-  static void move_resume();
-  static void move_reset_and_pause();
 
   static void set_state(uint8_t s);
   static void clear_state(uint8_t s);
@@ -35,24 +27,28 @@ struct Blinky : Ghost {
   Blinky();
 
   void init(LevelData ld);
+  blit::Point get_target() override;
 };
 
 struct Pinky : Ghost {
   Pinky();
 
   void init(LevelData ld);
+  blit::Point get_target() override;
 };
 
 struct Inky : Ghost {
   Inky();
 
   void init(LevelData ld);
+  blit::Point get_target() override;
 };
 
 struct Clyde : Ghost {
   Clyde();
 
   void init(LevelData ld);
+  blit::Point get_target() override;
 };
 
 #endif

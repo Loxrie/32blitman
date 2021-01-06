@@ -88,12 +88,14 @@ public:
   uint8_t state;
   uint8_t sprite;
 
+  uint8_t cycle_index;
   blit::Timer move_cycle_timer;
 
   Ghost();
 
   uint32_t invertDirection();
   blit::Rect center(blit::Point pos);
+  virtual blit::Point get_target();
   uint32_t direction_to_target(blit::Point target);
   uint32_t random_direction();
 

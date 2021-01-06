@@ -35,7 +35,6 @@ struct Pacman {
 
   Pacman();
   void init(LevelData ld);
-  void new_game();
   bool is_pilled_up();
 
   void animate();

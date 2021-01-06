@@ -288,18 +288,13 @@ void next_level() {
     current_level++;
 
   cycleTimes = getCycleTimes();
+  for (auto g: ghosts)
+    g->cycle_index = 0;
 
   for (auto x = 0; x < level_width * level_height; x++) {
     level_tiles[x] = asset_assets_level1_tmx[x];
   }
   pills_eaten = 0;
-
-  blinky_cycle_index = 0;
-  pinky_cycle_index = 0;
-  inky_cycle_index = 0;
-  clyde_cycle_index = 0;
-
-  Ghosts::move_reset_and_pause();
 
   reset_level();
 
@@ -315,34 +310,10 @@ void next_level() {
   }
 }
 
-void pause_game() {
-
-  Ghosts::move_pause();
-  if (power_timer.is_running()) {
-
-    power_timer.pause();
-  }
-}
-
-void resume_game() {
-
-  Ghosts::move_resume();
-  if (power_timer.is_paused()) {
-    power_timer.start();
-  }
-  if (!timer_level_animate.is_running()) {
-    timer_level_animate.start();
-  }
-  if (!house_timer.is_running()) {
-    house_timer.start();
-  }
-}
-
 void reset_level() {
   game_start = false;
 
   player->init(level_data[current_level]);
-  Ghosts::move_pause();
   Ghosts::init(current_level);
 
   power_timer.stop();
@@ -354,17 +325,21 @@ void reset_level() {
 }
 
 void game_over() {
-  game_start = false;
   current_level = 0;
   pills_eaten = 0;
-  pills_eaten_this_life = 0;
+  // Reset cycle times.
+  cycleTimes = getCycleTimes();
   // Restore pills.
   for (auto x = 0; x < level_width * level_height; x++) {
     level_tiles[x] = asset_assets_level1_tmx[x];
   }
+  for (auto g: ghosts) {
+    // Reset ghost move cycle.
+    g->cycle_index = 0;
+  }
   player->lives = 4;
   player->score = 0;
-  player->init(level_data[0]);
+  reset_level();
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -412,6 +387,22 @@ void render(uint32_t t) {
     screen.pen = Pen(255, 255, 0);
     screen.text("READY!", fat_font, Point(150, 108));
   }
+
+  // Debug ghost target.
+  screen.pen = Pen(255,0,0);
+  Point blinky_target = blinky->get_target() * 8;
+  // Offset debug of blinky so we can see clydes move.
+  screen.circle(world_to_screen(Point(blinky_target.x + 2, blinky_target.y)), 2);
+  screen.pen = Pen(255,128,128);
+  Point pinky_target = pinky->get_target() * 8;
+  screen.circle(world_to_screen(pinky_target), 2);
+  screen.pen = Pen(0,0,255);
+  Point inky_target = inky->get_target() * 8;
+  screen.circle(world_to_screen(inky_target), 2);
+  screen.pen = Pen(200,200,128);
+  Point clyde_target = clyde->get_target() * 8;
+  screen.circle(world_to_screen(clyde_target), 2);
+  
 
   // Draw footer bar
   screen.pen = Pen(0, 0, 1);

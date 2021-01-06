@@ -81,7 +81,7 @@ void Pacman::update(uint32_t time) {
     c_speed = fright_speed;
 
   if (flags & entityType::PILL) {
-    channels[0].trigger_attack();
+    // channels[0].trigger_attack();
     c_speed = dots_speed;
     if (power)
       c_speed = fright_dots_speed;

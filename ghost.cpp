@@ -16,6 +16,7 @@ Ghost::Ghost() {
 
   sprite = 0;
 
+  cycle_index = 0;
   forced_direction_change = false;
 }
 
@@ -71,6 +72,11 @@ Rect Ghost::center(Point pos) {
   return Rect(pos.x + 4, pos.y + 4, size.h / 2, size.w / 2);
 }
 
+Point Ghost::get_target() {
+  printf("Ghost::get_target called for %s.\n", name.c_str());
+  return player->tile;
+}
+
 uint32_t Ghost::direction_to_target(Point target_tile) {
   /**
    * https://gameinternals.com/understanding-pac-man-ghost-behavior
@@ -100,9 +106,6 @@ uint32_t Ghost::direction_to_target(Point target_tile) {
     break;
   }
 
-  // In chase state these indexes can't move up.
-  // 978, 981, 1746, 1749
-
   uint32_t inverted_direction = invertDirection();
   uint32_t index = tile.y * level_width + tile.x;
   auto search = mapOfJunctions.find(index);
@@ -117,6 +120,8 @@ uint32_t Ghost::direction_to_target(Point target_tile) {
       continue;
     }
 
+    // In chase/scatter state these indexes can't move up.
+    // 978, 981, 1746, 1749
     if (!frightened && exit == Button::DPAD_UP &&
         (index == 978 || index == 981 || index == 1746 || index == 1749)) {
       continue;
@@ -320,7 +325,7 @@ void Ghost::update(uint32_t time) {
     } else if (junction && scatter) {
       desired_direction = direction_to_target(scatter_target);
     } else if (junction && chase) {
-      desired_direction = direction_to_target(player->tile);
+      desired_direction = direction_to_target(get_target());
     } else if (junction && (state & ghostState::FRIGHTENED)) {
       desired_direction = random_direction();
     }
@@ -331,6 +336,4 @@ void Ghost::update(uint32_t time) {
 
 void Ghost::render() {
   screen.sprite(ghostAnims[sprite], world_to_screen(location));
-  screen.pen = Pen(255, 128, 128);
-  screen.pixel(world_to_screen(Point(tile.x * 8 + 4, tile.y * 8 + 4)));
 }

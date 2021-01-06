@@ -7,45 +7,33 @@ using namespace blit;
 
 std::vector<Ghost *> ghosts;
 
-uint8_t blinky_cycle_index = 0;
-uint8_t pinky_cycle_index = 0;
-uint8_t inky_cycle_index = 0;
-uint8_t clyde_cycle_index = 0;
-
-void manage_ghost_move_state(Timer &t, Ghost *g, uint8_t *cycle_index) {
-  ghostState nextState =
-      (*cycle_index % 2) == 0 ? ghostState::SCATTER : ghostState::CHASE;
-  if (*cycle_index != 0) {
+void manage_ghost_move_state(Timer &t, Ghost *g) {
+  uint8_t cycle_index = ++g->cycle_index;
+  ghostState nextState = (cycle_index % 2) == 0 ? ghostState::SCATTER : ghostState::CHASE;
+  printf("%s::manage_ghost_move_state called index %d nexr state %d.\n", g->name.c_str(), cycle_index, nextState);
+  if (cycle_index != 0) {
+    printf("%s::manage_ghost_move_state forcing direction change.\n", g->name.c_str());
     g->forced_direction_change = true;
   }
   g->set_move_state(nextState);
-  if (*cycle_index < cycleTimes.size()) {
-    int8_t next_cycle_time = cycleTimes[*cycle_index];
+  if (cycle_index < cycleTimes.size()) {
+    int8_t next_cycle_time = cycleTimes[cycle_index];
     if (next_cycle_time != -1) {
       // Setup next ghost cycle.
-      g->move_cycle_timer.duration = cycleTimes[*cycle_index];
-      (*cycle_index)++;
+      g->move_cycle_timer.duration = cycleTimes[cycle_index];
     } else {
       g->move_cycle_timer.stop();
     }
   }
 }
 
-void blinky_cycle_timer_callback(Timer &t) {
-  manage_ghost_move_state(t, blinky, &blinky_cycle_index);
-}
+void blinky_cycle_timer_callback(Timer &t) { manage_ghost_move_state(t, blinky); }
 
-void pinky_cycle_timer_callback(Timer &t) {
-  manage_ghost_move_state(t, pinky, &pinky_cycle_index);
-}
+void pinky_cycle_timer_callback(Timer &t) { manage_ghost_move_state(t, pinky); }
 
-void inky_cycle_timer_callback(Timer &t) {
-  manage_ghost_move_state(t, inky, &inky_cycle_index);
-}
+void inky_cycle_timer_callback(Timer &t) { manage_ghost_move_state(t, inky); }
 
-void clyde_cycle_timer_callback(Timer &t) {
-  manage_ghost_move_state(t, clyde, &clyde_cycle_index);
-}
+void clyde_cycle_timer_callback(Timer &t) { manage_ghost_move_state(t, clyde); }
 
 void Ghosts::init(uint8_t current_level) {
   blinky->init(level_data[current_level]);
@@ -55,46 +43,20 @@ void Ghosts::init(uint8_t current_level) {
 }
 
 void Ghosts::move_start() {
-  for (auto ghost : ghosts) {
-    ghost->move_cycle_timer.duration = 10;
-    ghost->move_cycle_timer.start();
-  }
-}
-
-void Ghosts::move_pause() {
-  for (auto ghost : ghosts) {
-    ghost->move_cycle_timer.pause();
-  }
-}
-
-void Ghosts::move_resume() {
-  for (auto ghost : ghosts) {
-    // Don't resume move cycle timer unless it is paused.
-    if ((ghost->state & ghostState::FRIGHTENED) == 0) {
-
-      ghost->move_cycle_timer.start();
-    }
-  }
-}
-
-void Ghosts::move_reset_and_pause() {
-  for (auto ghost : ghosts) {
-    ghost->move_cycle_timer.stop();
-    // Needs integrating into level_data;
-    ghost->move_cycle_timer.duration = 7000;
+  for (auto g : ghosts) {
+    g->move_cycle_timer.start();
   }
 }
 
 void Ghosts::set_state(uint8_t s) {
-  for (auto ghost : ghosts) {
-    ghost->set_state(s);
+  for (auto g : ghosts) {
+    g->set_state(s);
   }
 }
 
 void Ghosts::clear_state(uint8_t s) {
-  for (auto ghost : ghosts) {
-
-    ghost->clear_state(s);
+  for (auto g : ghosts) {z
+    g->clear_state(s);
   }
 }
 
@@ -109,22 +71,19 @@ void Ghosts::power_pill_eaten() {
 
 bool Ghosts::update(uint32_t t) {
   bool pacman_eaten = false;
-  for (auto ghost : ghosts) {
-    ghost->update(t);
+  for (auto g : ghosts) {
+    g->update(t);
     // Odd that pacman can pass through ghosts
     // way more often than the arcade game.
-    if (player->tile == ghost->tile) {
-      if (ghost->edible()) {
-        ghost->set_state(ghostState::EATEN);
+    if (player->tile == g->tile) {
+      if (g->edible()) {
+        g->set_state(ghostState::EATEN);
         player->score += 100 * pow(2, ghost_train);
         ghost_train++;
-      } else if (!ghost->eaten()) {
+      } else if (!g->eaten()) {
         pacman_eaten = true;
       }
     }
-  }
-  if (pacman_eaten) {
-    Ghosts::move_pause();
   }
   return pacman_eaten;
 }
@@ -135,7 +94,6 @@ void Blinky::init(LevelData ld) {
   target_offset = 0;
   tile = Point(18, 15);
   location = Point(tile.x * 8 + 4, tile.y * 8);
-  Point xy = get_tile(location);
 
   direction = Button::DPAD_LEFT;
   desired_direction = direction;
@@ -143,8 +101,11 @@ void Blinky::init(LevelData ld) {
   speed = ld.ghost_speed;
   tunnel_speed = ld.ghost_tunnel_speed;
   fright_speed = ld.ghost_fright_speed;
-
-  state = ghostState::SCATTER;
+  
+  move_cycle_timer.stop();
+  move_cycle_timer.duration = cycleTimes[cycle_index];
+  state = (cycle_index % 2) == 0 ? ghostState::SCATTER : ghostState::CHASE;
+  printf("%s::init state %d, cycle_index %d.\n", name.c_str(), state, cycle_index);
 }
 
 Blinky::Blinky() {
@@ -155,6 +116,8 @@ Blinky::Blinky() {
   move_cycle_timer.init(blinky_cycle_timer_callback, 7000, -1);
   init(level_data[0]);
 }
+
+Point Blinky::get_target() { return player->tile; }
 
 void Pinky::init(LevelData ld) {
   target_offset = 4;
@@ -167,7 +130,12 @@ void Pinky::init(LevelData ld) {
   tunnel_speed = ld.ghost_tunnel_speed;
   fright_speed = ld.ghost_fright_speed;
 
-  state = ghostState::SCATTER | ghostState::RESTING;
+  move_cycle_timer.stop();
+  move_cycle_timer.duration = cycleTimes[cycle_index];
+
+  state = (cycle_index % 2) == 0 ? ghostState::SCATTER : ghostState::CHASE;
+  state |= ghostState::RESTING;
+  printf("%s::init state %d, cycle_index %d.\n", name.c_str(), state, cycle_index);
 }
 
 Pinky::Pinky() {
@@ -177,6 +145,25 @@ Pinky::Pinky() {
   scatter_target = Point(9, 0);
   move_cycle_timer.init(pinky_cycle_timer_callback, 7000, -1);
   init(level_data[0]);
+}
+
+Point Pinky::get_target() {
+  Point target_tile = player->tile;
+  switch (player->direction) {
+  case Button::DPAD_LEFT:
+    target_tile.x -= 4;
+    break;
+  case Button::DPAD_RIGHT:
+    target_tile.x += 4;
+    break;
+  case Button::DPAD_UP:
+    target_tile.y -= 4;
+    break;
+  case Button::DPAD_DOWN:
+    target_tile.y += 4;
+    break;
+  }
+  return target_tile;
 }
 
 void Inky::init(LevelData ld) {
@@ -190,7 +177,11 @@ void Inky::init(LevelData ld) {
   tunnel_speed = ld.ghost_tunnel_speed;
   fright_speed = ld.ghost_fright_speed;
 
-  state = ghostState::SCATTER | ghostState::RESTING;
+  move_cycle_timer.stop();
+  move_cycle_timer.duration = cycleTimes[cycle_index];
+  state = (cycle_index % 2) == 0 ? ghostState::SCATTER : ghostState::CHASE;
+  state |= ghostState::RESTING;
+  printf("%s::init state %d, cycle_index %d.\n", name.c_str(), state, cycle_index);
 }
 
 Inky::Inky() {
@@ -200,6 +191,13 @@ Inky::Inky() {
   scatter_target = Point(33, 36);
   move_cycle_timer.init(inky_cycle_timer_callback, 7000, -1);
   init(level_data[0]);
+}
+
+Point Inky::get_target() {
+  Point pacman_tile = player->tile;
+  Point blinky_tile = blinky->tile;
+  Vec2 vector = Vec2(pacman_tile.x - blinky_tile.x, pacman_tile.y - blinky_tile.y) * 2;
+  return Point(pacman_tile.x + vector.x, pacman_tile.y + vector.y);
 }
 
 void Clyde::init(LevelData ld) {
@@ -214,7 +212,11 @@ void Clyde::init(LevelData ld) {
   tunnel_speed = ld.ghost_tunnel_speed;
   fright_speed = ld.ghost_fright_speed;
 
-  state = ghostState::SCATTER | ghostState::RESTING;
+  move_cycle_timer.stop();
+  move_cycle_timer.duration = cycleTimes[cycle_index];
+  state = (cycle_index % 2) == 0 ? ghostState::SCATTER : ghostState::CHASE;
+  state |= ghostState::RESTING;
+  printf("%s::init state %d, cycle_index %d.\n", name.c_str(), state, cycle_index);
 }
 
 Clyde::Clyde() {
@@ -222,6 +224,16 @@ Clyde::Clyde() {
   anim_offset = 24;
   sprite = anim_offset;
   scatter_target = Point(6, 36);
+  
   move_cycle_timer.init(clyde_cycle_timer_callback, 7000, -1);
   init(level_data[0]);
+}
+
+Point Clyde::get_target() {
+  Point pacman_tile = player->tile;
+  float distance = fabs(Vec2(pacman_tile.x - tile.x, pacman_tile.y - tile.y).length());
+  if (distance > 8) {
+    return player->tile;
+  }
+  return scatter_target;
 }
